@@ -1,0 +1,50 @@
+[project]
+name = "mis-eventos"
+version = "0.1.0"
+description = "Sistema de gestión de eventos"
+requires-python = ">=3.14,<3.15"
+
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlmodel",
+    "psycopg[binary]",
+    "alembic",
+    "pydantic-settings",
+    "pwdlib[argon2]>=0.3.1",
+    "pyjwt>=2.15.1",
+    "python-multipart>=0.0.32",
+    "pydantic[email]>=2.14.1",
+]
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "pyright",
+    "pytest",
+    "pytest-cov",
+    "pre-commit",
+    "httpx2>=2.16.0",
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
+
+[tool.pyright]
+pythonVersion = "3.14"
+typeCheckingMode = "standard"
+reportDeprecated = "error"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+filterwarnings = [
+    "error::DeprecationWarning",
+    "error::PendingDeprecationWarning",
+    "error::starlette.exceptions.StarletteDeprecationWarning",
+]

@@ -1,0 +1,36 @@
+name: mis-eventos
+
+services:
+  api:
+    build:
+      context: .devcontainer
+      dockerfile: Dockerfile
+    command: sleep infinity
+    env_file:
+      - .env
+    volumes:
+      - .:/workspaces/tusdatos:cached
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mis_eventos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mis_eventos}
+      POSTGRES_DB: ${POSTGRES_DB:-mis_eventos}
+      POSTGRES_TEST_DB: ${POSTGRES_TEST_DB:-mis_eventos_test}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres-data:

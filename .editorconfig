@@ -1,0 +1,47 @@
+# EditorConfig — Mis Eventos
+# https://editorconfig.org/
+
+root = true
+
+# Configuración general
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Python
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 88
+
+# JSON
+[*.json]
+indent_size = 2
+
+# YAML
+[*.{yaml,yml}]
+indent_size = 2
+
+# TOML
+[*.toml]
+indent_size = 4
+
+# Dockerfile
+[Dockerfile*]
+indent_size = 4
+
+# Justfile
+[{justfile,Justfile}]
+indent_size = 4
+
+# Markdown
+[*.md]
+trim_trailing_whitespace = false
+
+# Shell scripts
+[*.sh]
+indent_size = 4

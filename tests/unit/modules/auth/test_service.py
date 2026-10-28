@@ -9,8 +9,12 @@ from app.core.security import decode_access_token
 from app.modules.auth import service as auth_service
 from app.modules.auth.schemas import RegisterRequest
 from app.modules.users import repository as users_repository
-from app.modules.users.models import User
+from app.modules.users.models import Role, RoleCode, User
 from app.shared.exceptions import UnauthorizedError
+
+REQUEST = RegisterRequest(
+    email="ana@example.com", password="correct horse", full_name="Ana"
+)
 
 
 def make_user(*, is_active: bool = True) -> User:
@@ -29,13 +33,33 @@ def test_register_reraises_violations_of_other_constraints(
     session = Mock(spec=Session)
     session.flush.side_effect = IntegrityError("INSERT", {}, Exception("violation"))
     monkeypatch.setattr(auth_service, "violated_constraint", lambda exc: "ck_other")
-    request = RegisterRequest(
-        email="ana@example.com", password="correct horse", full_name="Ana"
-    )
 
     with pytest.raises(IntegrityError):
-        auth_service.register(session, request)
+        auth_service.register(session, REQUEST)
     session.rollback.assert_called_once()
+
+
+def test_register_grants_the_requested_roles_in_one_transaction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    role_ids = {RoleCode.ATTENDEE: 10, RoleCode.ADMIN: 30}
+    session = Mock(spec=Session)
+
+    def assign_id() -> None:
+        session.add.call_args_list[0].args[0].id = 1
+
+    session.flush.side_effect = assign_id
+    monkeypatch.setattr(
+        users_repository,
+        "get_role",
+        lambda session, code: Role(id=role_ids[code], code=code),
+    )
+
+    auth_service.register(session, REQUEST, roles=(RoleCode.ATTENDEE, RoleCode.ADMIN))
+
+    granted = [call.args[0] for call in session.add.call_args_list[1:]]
+    assert [(row.user_id, row.role_id) for row in granted] == [(1, 10), (1, 30)]
+    session.commit.assert_called_once()
 
 
 @pytest.mark.parametrize(

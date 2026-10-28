@@ -34,6 +34,10 @@ migration-status:
     uv run alembic current
     uv run alembic check
 
+# Crear un administrador; pide la contraseña (o la lee de ADMIN_PASSWORD): just create-admin admin@example.com "Ana Admin"
+create-admin email full_name:
+    uv run python -m app.modules.auth.cli create-admin --email "{{ email }}" --full-name "{{ full_name }}"
+
 # Formatear código y organizar imports
 format:
     uv run ruff check --fix .

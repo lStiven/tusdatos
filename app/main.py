@@ -10,6 +10,7 @@ from app.core.database import engine
 from app.modules.auth.router import router as auth_router
 from app.modules.health.router import router as health_router
 from app.modules.users.router import router as users_router
+from app.modules.venues.router import router as venues_router
 from app.shared.exceptions import EXCEPTION_HANDLERS
 
 settings = get_settings()
@@ -37,6 +38,7 @@ On `503`, retry after the number of seconds given in the `Retry-After` header.
 OPENAPI_TAGS = [
     {"name": "auth", "description": "Registration and login."},
     {"name": "users", "description": "User accounts and profiles."},
+    {"name": "venues", "description": "Venues and their rooms. Managed by admins."},
     {"name": "health", "description": "Status of the API and its dependencies."},
 ]
 
@@ -71,6 +73,7 @@ app.add_middleware(
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
+api_router.include_router(venues_router)
 
 app.include_router(health_router)
 app.include_router(api_router)

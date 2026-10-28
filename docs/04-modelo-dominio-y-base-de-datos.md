@@ -213,7 +213,7 @@ Tipos convencionales: `BIGINT` (identidad), `VARCHAR(n)`, `TEXT`, `BOOLEAN`, `IN
 | `is_active` | `BOOLEAN` | No | `DEFAULT true` |
 | `created_at`, `updated_at` | `TIMESTAMPTZ` | No | Auditoría básica |
 
-**Regla cruzada:** reducir aforo de una sala requiere comprobar primero que ninguna charla `SCHEDULED` tenga capacidad superior. Desactivar una sala con sesiones activas exige reprogramarlas o cancelarlas según política de negocio.
+**Regla cruzada (implementada):** solo atan una sala las charlas `SCHEDULED` que aún no terminan (`ends_at > now()`); las pasadas no cuentan. Mientras exista alguna, la sala no puede reducir su aforo por debajo de la charla más grande (409 `room_capacity_below_sessions`) ni desactivarse (409 `room_has_scheduled_sessions`), y su sede tampoco puede desactivarse (409 `venue_has_scheduled_sessions`): el sistema no reprograma ni cancela por su cuenta. Ambas operaciones bloquean primero la fila de la sala (o todas las salas de la sede, por ID ascendente) y luego consultan. Las sedes y salas no se borran: se desactivan.
 
 #### `events`
 
@@ -460,7 +460,7 @@ Bloquear la fila del evento antes de editar `capacity`. En aumentos, atender lis
 
 ### 7.4 Crear o mover charlas
 
-Adoptar un orden global de bloqueos para rutas de programación: **evento afectado → salas afectadas (ID ascendente) → ponentes afectados (ID ascendente) → sesión/asignaciones**. Comprobar permisos, evento, disponibilidad, aforos y horarios después de bloquear; guardar dentro de la misma transacción. El índice de exclusión GiST es la defensa final para la disponibilidad de la **sala**; la disponibilidad de **ponentes** necesita bloqueo y consulta al no disponer de su intervalo en la tabla intermedia.
+Adoptar un orden global de bloqueos para rutas de programación: **evento afectado → salas afectadas (ID ascendente) → ponentes afectados (ID ascendente) → sesión/asignaciones**. Comprobar permisos, evento, disponibilidad, aforos y horarios después de bloquear, incluido que la sala y su sede sigan activas (desactivarlas bloquea esas mismas filas de `rooms`, así que ambas operaciones quedan serializadas); guardar dentro de la misma transacción. El índice de exclusión GiST es la defensa final para la disponibilidad de la **sala**; la disponibilidad de **ponentes** necesita bloqueo y consulta al no disponer de su intervalo en la tabla intermedia.
 
 > El orden global debe cumplirse al editar fechas, cancelar/programar sesiones, cambiar ponentes y cambiar salas. Si una operación toca varias entidades existentes, bloquear identificadores antiguos y nuevos en orden estable. No mantener locks durante llamadas HTTP externas. Implementar timeout de adquisición y manejo acotado de errores transitorios.
 
@@ -534,7 +534,7 @@ No crear índices duplicados a los que ya generan `PRIMARY KEY` y `UNIQUE`. Medi
 - Las restricciones **GiST de exclusión**, índices parciales y extensiones `btree_gist`/`pg_trgm` deben revisarse manualmente en Alembic: no asumir que `--autogenerate` puede inferirlas o recrearlas por completo.
 - Elegir nomenclatura estable: `pk_`, `fk_`, `uq_`, `ck_`, `ix_`, `ex_`.
 - Evitar `create_all()` como mecanismo de producción: el esquema se crea y evoluciona mediante Alembic.
-- Crear semillas iniciales de roles mediante migración idempotente o comando reproducible; documentar cómo se crea **el primer administrador** sin habilitar autoescalada de privilegios.
+- Crear semillas iniciales de roles mediante migración idempotente o comando reproducible; documentar cómo se crea **el primer administrador** sin habilitar autoescalada de privilegios. Implementado: `just create-admin <email> "<nombre>"` (lee la contraseña de `ADMIN_PASSWORD` o la pide dos veces; nunca como argumento) crea el usuario con `ATTENDEE` + `ADMIN` en una transacción. Requiere acceso a la shell del servidor, no a la API.
 - Mantener pruebas de migración «base vacía → head» y de restricciones con PostgreSQL real.
 
 ## 11. Pruebas que deben acompañar las migraciones

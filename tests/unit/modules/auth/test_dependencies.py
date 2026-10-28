@@ -6,8 +6,9 @@ import pytest
 from sqlmodel import Session
 
 from app.modules.auth import dependencies as auth_dependencies
-from app.modules.users.models import User
-from app.shared.exceptions import UnauthorizedError
+from app.modules.users import repository as users_repository
+from app.modules.users.models import RoleCode, User
+from app.shared.exceptions import ForbiddenError, UnauthorizedError
 
 ACTIVE = User(id=1, email="ana@example.com", password_hash="h", full_name="Ana")
 INACTIVE = User(
@@ -60,3 +61,27 @@ def test_returns_the_active_user_the_token_belongs_to(
 
     assert auth_dependencies.get_current_user(session, "token") is ACTIVE
     session.get.assert_called_once_with(User, 1)
+
+
+@pytest.mark.parametrize(
+    ("roles", "allowed"),
+    [
+        ([RoleCode.ATTENDEE, RoleCode.ADMIN], True),
+        ([RoleCode.ORGANIZER], True),
+        ([RoleCode.ATTENDEE], False),
+    ],
+    ids=["one-of-many", "any-listed-role", "none-listed"],
+)
+def test_require_roles_needs_any_of_the_listed_roles(
+    monkeypatch: pytest.MonkeyPatch, roles: list[RoleCode], allowed: bool
+) -> None:
+    monkeypatch.setattr(
+        users_repository, "get_role_codes", lambda session, user_id: roles
+    )
+    check = auth_dependencies.require_roles(RoleCode.ORGANIZER, RoleCode.ADMIN)
+
+    if allowed:
+        assert check(ACTIVE, Mock(spec=Session)) is ACTIVE
+    else:
+        with pytest.raises(ForbiddenError):
+            check(ACTIVE, Mock(spec=Session))

@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session
 
@@ -14,7 +16,12 @@ def normalize_email(email: str) -> str:
     return email.strip().lower()
 
 
-def register(session: Session, request: RegisterRequest) -> User:
+def register(
+    session: Session,
+    request: RegisterRequest,
+    *,
+    roles: Sequence[RoleCode] = (RoleCode.ATTENDEE,),
+) -> User:
     user = User(
         email=normalize_email(request.email),
         password_hash=hash_password(request.password),
@@ -28,8 +35,9 @@ def register(session: Session, request: RegisterRequest) -> User:
         if violated_constraint(exc) == "uq_users_email_ci":
             raise ConflictError("Email already exists", code="email_taken") from exc
         raise
-    attendee = users_repository.get_role(session, code=RoleCode.ATTENDEE)
-    session.add(UserRole(user_id=id_of(user), role_id=id_of(attendee)))
+    for code in roles:
+        role = users_repository.get_role(session, code=code)
+        session.add(UserRole(user_id=id_of(user), role_id=id_of(role)))
     session.commit()
     return user
 

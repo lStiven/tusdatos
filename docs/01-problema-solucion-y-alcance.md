@@ -47,6 +47,7 @@ La solución consiste en una **plataforma centralizada** que gestione usuarios y
 - El evento registra un `owner_id` (creador/propietario). La autorización comprueba rol **y** propiedad en todas las operaciones protegidas.
 - La autorización también aplica a las sesiones: el organizador solo puede modificar charlas del evento que posee.
 - Administrar salas compartidas y asignar roles es responsabilidad del administrador, para evitar que un organizador bloquee o altere recursos de otro.
+- Los ponentes no tienen propietario y se comparten entre eventos: cualquier `ORGANIZER` o `ADMIN` puede darlos de alta, editarlos o borrarlos (solo si nunca se asignaron), porque el organizador los necesita para programar sus charlas.
 - Un organizador puede asistir como participante en otros eventos; los permisos no impiden la inscripción propia.
 - Se contemplará un modelo de roles extensible (por ejemplo, usuario y asignaciones de rol) para no depender de un booleano `is_admin`.
 

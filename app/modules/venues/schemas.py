@@ -1,12 +1,8 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.shared.schemas import reject_null
+
 MAX_ROOM_CAPACITY = 100_000
-
-
-def _reject_null(value: object) -> object:
-    if value is None:
-        raise ValueError("may be omitted, but not null")
-    return value
 
 
 class VenueCreate(BaseModel):
@@ -47,7 +43,7 @@ class VenueUpdate(BaseModel):
         examples=[False],
     )
 
-    _not_null = field_validator("name", "is_active")(_reject_null)
+    _not_null = field_validator("name", "is_active")(reject_null)
 
 
 class VenueRead(BaseModel):
@@ -96,7 +92,7 @@ class RoomUpdate(BaseModel):
         examples=[False],
     )
 
-    _not_null = field_validator("name", "capacity", "is_active")(_reject_null)
+    _not_null = field_validator("name", "capacity", "is_active")(reject_null)
 
 
 class RoomRead(BaseModel):

@@ -11,12 +11,6 @@ router = APIRouter(prefix="/health", tags=["health"])
     "",
     response_model=HealthResponse,
     summary="Service health check",
-    description=(
-        "Checks every component the API depends on (currently: the database). "
-        "Returns 200 when all of them work and 503 when any fails; in both cases "
-        "`checks` shows the status of each one. Failure details are written only "
-        "to the server logs."
-    ),
     responses={
         503: {
             "model": HealthResponse,
@@ -25,6 +19,14 @@ router = APIRouter(prefix="/health", tags=["health"])
     },
 )
 def check(session: SessionDep, response: Response) -> HealthResponse:
+    """Check every component the API depends on (currently: the database).
+
+    **Rules**
+    - `200` when all of them work, `503` when any fails; both return `checks`
+      with the status of each one.
+    - Failure details go only to the server logs, never to the response.
+    - Public and outside `/api/v1`: meant for load balancers and monitoring.
+    """
     checks = health_service.check_health(session)
     healthy = all(checks.values())
     if not healthy:

@@ -9,6 +9,7 @@ from app.core.config import get_settings
 from app.core.database import engine
 from app.modules.auth.router import router as auth_router
 from app.modules.health.router import router as health_router
+from app.modules.speakers.router import router as speakers_router
 from app.modules.users.router import router as users_router
 from app.modules.venues.router import router as venues_router
 from app.shared.exceptions import EXCEPTION_HANDLERS
@@ -28,17 +29,32 @@ Every error response uses the `ErrorResponse` schema:
 
 On `503`, retry after the number of seconds given in the `Retry-After` header.
 
+Each endpoint lists its possible `code` values per status, with an example of each
+one, in its *Responses* section.
+
 ## Authentication
 
 1. `POST /api/v1/auth/token` with form fields `username` (the email) and `password`.
 2. Send the returned token as `Authorization: Bearer <token>`.
 3. On `401` with code `token_expired`, log in again.
+
+## Pagination
+
+List endpoints that can grow take `limit` (1–100, default 50) and `offset`
+(default 0) and return `{items, total, limit, offset}`, where `total` counts
+every item that matches the filters. There is a next page while
+`offset + limit < total`.
 """
 
 OPENAPI_TAGS = [
     {"name": "auth", "description": "Registration and login."},
     {"name": "users", "description": "User accounts and profiles."},
     {"name": "venues", "description": "Venues and their rooms. Managed by admins."},
+    {
+        "name": "speakers",
+        "description": "Speaker profiles, shared by every event. "
+        "Managed by organizers and admins.",
+    },
     {"name": "health", "description": "Status of the API and its dependencies."},
 ]
 
@@ -74,6 +90,7 @@ api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
 api_router.include_router(venues_router)
+api_router.include_router(speakers_router)
 
 app.include_router(health_router)
 app.include_router(api_router)

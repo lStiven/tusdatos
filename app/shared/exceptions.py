@@ -43,6 +43,7 @@ class AppError(Exception):
     status_code: int = HTTPStatus.BAD_REQUEST
     code: str = "bad_request"
     message: str = "Invalid request"
+    description: str = ""
     headers: dict[str, str] | None = None
 
     def __init__(self, message: str | None = None, *, code: str | None = None):
@@ -55,6 +56,7 @@ class UnauthorizedError(AppError):
     status_code = HTTPStatus.UNAUTHORIZED
     code = "unauthorized"
     message = "Missing or invalid credentials"
+    description = "Missing or invalid credentials."
     headers = {"WWW-Authenticate": "Bearer"}
 
 
@@ -62,24 +64,28 @@ class ForbiddenError(AppError):
     status_code = HTTPStatus.FORBIDDEN
     code = "forbidden"
     message = "You do not have permission to perform this action"
+    description = "The user lacks the role this operation requires."
 
 
 class NotFoundError(AppError):
     status_code = HTTPStatus.NOT_FOUND
     code = "not_found"
     message = "Resource not found"
+    description = "The resource does not exist."
 
 
 class ConflictError(AppError):
     status_code = HTTPStatus.CONFLICT
     code = "conflict"
     message = "The operation conflicts with the current state"
+    description = "The operation conflicts with the current state."
 
 
 class ServiceUnavailableError(AppError):
     status_code = HTTPStatus.SERVICE_UNAVAILABLE
     code = "service_unavailable"
     message = "Service temporarily unavailable; retry in a few seconds"
+    description = "Temporarily unavailable; retry after `Retry-After`."
     headers = {"Retry-After": str(RETRY_AFTER_SECONDS)}
 
 
@@ -187,18 +193,50 @@ _DESCRIPTIONS = {
 }
 
 
-def error_responses(
-    *status_codes: int, descriptions: Mapping[int, str] | None = None
-) -> dict[int | str, dict[str, Any]]:
-    overrides = descriptions or {}
-    codes = sorted({*status_codes, *overrides, 422, 503})
+type ErrorSpec = int | type[AppError]
+
+
+def error_responses(*errors: ErrorSpec) -> dict[int | str, dict[str, Any]]:
+    """Build the OpenAPI `responses` of an endpoint; 422 and 503 always apply.
+
+    Pass a status code for a generic response, or an `AppError` subclass to list
+    its `code` (explained by the class's own `description`) and add a named
+    example with its default message.
+    """
+    by_status: dict[int, list[type[AppError]]] = {422: [], 503: []}
+    for error in errors:
+        if isinstance(error, int):
+            by_status.setdefault(error, [])
+        else:
+            by_status.setdefault(int(error.status_code), []).append(error)
     return {
-        code: {
-            "model": ErrorResponse,
-            "description": overrides.get(code) or _DESCRIPTIONS[code],
-        }
-        for code in codes
+        status: _documented_response(status, by_status[status])
+        for status in sorted(by_status)
     }
+
+
+def _documented_response(status: int, errors: list[type[AppError]]) -> dict[str, Any]:
+    response: dict[str, Any] = {
+        "model": ErrorResponse,
+        "description": _DESCRIPTIONS[status],
+    }
+    if errors:
+        response["description"] += "\n\n" + "\n".join(
+            f"- `{error.code}`: {error.description}" for error in errors
+        )
+        response["content"] = {
+            "application/json": {
+                "examples": {
+                    error.code: {
+                        "value": ErrorResponse(
+                            code=error.code, message=error.message
+                        ).model_dump()
+                    }
+                    for error in errors
+                }
+            }
+        }
+    return response
 
 
 def violated_constraint(exc: IntegrityError) -> str | None:

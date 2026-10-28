@@ -13,6 +13,12 @@ if [[ ! -s .env && -f .env.example ]]; then
   cp .env.example .env
 fi
 
+if grep -q '^JWT_SECRET_KEY=$' .env; then
+  echo "==> Generando JWT_SECRET_KEY en .env"
+  secret="$(uv run python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+  sed -i "s/^JWT_SECRET_KEY=$/JWT_SECRET_KEY=${secret}/" .env
+fi
+
 if [[ -s .pre-commit-config.yaml ]]; then
   echo "==> Instalando hooks de pre-commit"
   uv run pre-commit install --install-hooks

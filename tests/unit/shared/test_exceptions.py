@@ -138,10 +138,34 @@ def test_validation_errors_list_fields_without_echoing_input() -> None:
     assert "hunter2" not in response.text
 
 
-def test_error_responses_add_defaults_and_custom_descriptions() -> None:
-    responses = error_responses(404, descriptions={409: "Already registered"})
+class SeatsTakenError(ConflictError):
+    code = "seats_taken"
+    message = "No seats left"
+    description = "Every seat is taken."
+
+
+class OverlapError(ConflictError):
+    code = "overlap"
+    description = "Another session uses the room."
+
+
+def test_error_responses_document_each_error_class_under_its_status() -> None:
+    responses = error_responses(404, SeatsTakenError, OverlapError)
 
     assert set(responses) == {404, 409, 422, 503}
-    assert responses[404]["description"] == "Resource not found"
-    assert responses[409]["description"] == "Already registered"
     assert all(response["model"] is ErrorResponse for response in responses.values())
+    assert responses[404] == {
+        "model": ErrorResponse,
+        "description": "Resource not found",
+    }
+    assert responses[409]["description"].endswith(
+        "\n\n- `seats_taken`: Every seat is taken."
+        "\n- `overlap`: Another session uses the room."
+    )
+    examples = responses[409]["content"]["application/json"]["examples"]
+    assert examples["seats_taken"]["value"] == {
+        "code": "seats_taken",
+        "message": "No seats left",
+        "details": None,
+    }
+    assert examples["overlap"]["value"]["message"] == ConflictError.message

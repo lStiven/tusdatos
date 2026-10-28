@@ -7,27 +7,34 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session
 
 from app.core.security import decode_access_token
+from app.modules.auth.exceptions import (
+    InvalidTokenError,
+    NotAuthenticatedError,
+    TokenExpiredError,
+)
 from app.modules.users import repository as users_repository
 from app.modules.users.models import RoleCode, User
 from app.shared.dependencies import SessionDep
-from app.shared.exceptions import ForbiddenError, UnauthorizedError
+from app.shared.exceptions import ForbiddenError
 from app.shared.models import id_of
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 
 
 def get_current_user(
-    session: SessionDep, token: Annotated[str, Depends(oauth2_scheme)]
+    session: SessionDep, token: Annotated[str | None, Depends(oauth2_scheme)]
 ) -> User:
+    if token is None:
+        raise NotAuthenticatedError()
     try:
         user_id = decode_access_token(token)
     except jwt.ExpiredSignatureError as exc:
-        raise UnauthorizedError("Token expired", code="token_expired") from exc
+        raise TokenExpiredError() from exc
     except jwt.InvalidTokenError as exc:
-        raise UnauthorizedError("Invalid token", code="invalid_token") from exc
+        raise InvalidTokenError() from exc
     user = session.get(User, user_id)
     if user is None or not user.is_active:
-        raise UnauthorizedError("Invalid token", code="invalid_token")
+        raise InvalidTokenError()
     return user
 
 

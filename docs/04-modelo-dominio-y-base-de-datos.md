@@ -503,7 +503,7 @@ Así el estado de cada inscripción es verdadero por sí solo: las consultas de 
 - **Usuarios:** preferir `is_active=false`; conservar referencias históricas. El borrado de datos personales deberá diseñarse conforme a requisitos legales específicos.
 - **Eventos:** con inscripciones, preferir estado `CANCELLED` en vez de `DELETE` físico.
 - **Salas y sedes:** preferir `is_active=false` cuando ya existan referencias; `ON DELETE RESTRICT` para dependencias importantes.
-- **Ponentes:** no eliminar físicamente si figuran en charlas históricas; desactivar o archivarlos es una posible evolución.
+- **Ponentes:** solo se borran si nunca figuraron en una charla (de cualquier estado); lo decide la FK `ON DELETE RESTRICT` de `session_speakers`, sin consulta previa, así que una asignación concurrente no puede colarse. Desactivar o archivarlos es una posible evolución.
 - **Inscripciones:** conservar fila y auditoría; no eliminar por cancelación.
 - **Intereses:** actualizar `withdrawn_at`, no eliminar para mantener trazabilidad mínima.
 - **Auditoría:** los cambios de estado deben registrarse en la misma transacción; si en el futuro se requiere auditoría resistente a cualquier escritura directa en BD, valorar un trigger o permisos específicos.

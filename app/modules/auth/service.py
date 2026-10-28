@@ -5,10 +5,11 @@ from sqlmodel import Session
 
 from app.core.config import get_settings
 from app.core.security import create_access_token, hash_password, verify_password
+from app.modules.auth.exceptions import EmailTakenError, InvalidCredentialsError
 from app.modules.auth.schemas import RegisterRequest, TokenResponse
 from app.modules.users import repository as users_repository
 from app.modules.users.models import RoleCode, User, UserRole
-from app.shared.exceptions import ConflictError, UnauthorizedError, violated_constraint
+from app.shared.exceptions import violated_constraint
 from app.shared.models import id_of
 
 
@@ -33,7 +34,7 @@ def register(
     except IntegrityError as exc:
         session.rollback()
         if violated_constraint(exc) == "uq_users_email_ci":
-            raise ConflictError("Email already exists", code="email_taken") from exc
+            raise EmailTakenError() from exc
         raise
     for code in roles:
         role = users_repository.get_role(session, code=code)
@@ -46,7 +47,7 @@ def authenticate(session: Session, email: str, password: str) -> User:
     user = users_repository.get_by_email(session, email=email)
     valid, new_hash = verify_password(password, user.password_hash if user else None)
     if user is None or not valid or not user.is_active:
-        raise UnauthorizedError("Invalid email or password", code="invalid_credentials")
+        raise InvalidCredentialsError()
     if new_hash is not None:
         user.password_hash = new_hash
         session.commit()

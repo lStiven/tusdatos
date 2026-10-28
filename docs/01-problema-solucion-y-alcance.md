@@ -47,6 +47,7 @@ La solución consiste en una **plataforma centralizada** que gestione usuarios y
 - El evento registra un `owner_id` (creador/propietario). La autorización comprueba rol **y** propiedad en todas las operaciones protegidas.
 - La autorización también aplica a las sesiones: el organizador solo puede modificar charlas del evento que posee.
 - Administrar salas compartidas y asignar roles es responsabilidad del administrador, para evitar que un organizador bloquee o altere recursos de otro.
+- Un evento `DRAFT` solo es visible para su propietario y los administradores; los demás estados (`PUBLISHED`, `CANCELLED`, `COMPLETED`) los consulta cualquier usuario autenticado, para que un inscrito vea que su evento se canceló. Un borrador ajeno responde 404, no 403, para no revelar que existe.
 - Los ponentes no tienen propietario y se comparten entre eventos: cualquier `ORGANIZER` o `ADMIN` puede darlos de alta, editarlos o borrarlos (solo si nunca se asignaron), porque el organizador los necesita para programar sus charlas.
 - Un organizador puede asistir como participante en otros eventos; los permisos no impiden la inscripción propia.
 - Se contemplará un modelo de roles extensible (por ejemplo, usuario y asignaciones de rol) para no depender de un booleano `is_admin`.
@@ -283,7 +284,7 @@ Referencia: [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.
 | Promoción de espera | Automática e inmediata (propuesta) o con ventana de aceptación | Puede haber usuarios que ya no puedan asistir |
 | Aviso de promoción | Consulta en API en MVP; email posterior | La entrega fiable de correo necesita infraestructura adicional |
 | Cierre de inscripciones | Al inicio del evento por defecto; posibilidad de `registration_closes_at` | Evita registros tardíos inesperados |
-| Edición durante un evento | Política por estado y campos mutables por definir | Modificar horarios/cupos puede afectar inscritos |
+| Edición durante un evento | **Acordada:** editable en `DRAFT`/`PUBLISHED` con guardas de aforo, fechas y sede (docs/04 §12) | Modificar horarios/cupos puede afectar inscritos |
 | Sedes | MVP con eventos presenciales de una sola sede | Eventos virtuales/híbridos requerirán extensión |
 | Eliminación | Preferir baja lógica o cancelación cuando hay inscripciones | Conserva trazabilidad |
 | Disponibilidad de salas fuera de charlas | Reservas y bloqueos por mantenimiento: futura extensión | Afecta calendario de instalaciones |

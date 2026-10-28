@@ -493,7 +493,7 @@ Una sola transacción, con el mismo orden global de bloqueos (evento primero):
 2. `events.status = 'CANCELLED'`.
 3. Inscripciones `CONFIRMED` y `WAITLISTED` → `CANCELLED` con `cancelled_at`, en **una sola sentencia** sobre el conjunto (no fila a fila desde la aplicación). En la misma transacción, insertar su historial con `reason = 'EVENT_CANCELLED'`, `from_status`, la foto de `waitlist_order` y `changed_by` = actor. **No hay promociones.**
 4. Charlas no canceladas → `CANCELLED`; las `SCHEDULED` liberan su sala.
-5. Intereses: misma regla que al cancelar una inscripción (decisión pendiente «Cancelación de interés», §12).
+5. Intereses activos en sus charlas → `withdrawn_at = now()`, misma regla que al cancelar una inscripción (§12).
 6. `COMMIT` antes de responder.
 
 Así el estado de cada inscripción es verdadero por sí solo: las consultas de «mis inscripciones», el conteo de confirmados y la regla de interés (§3.4) no necesitan consultar `events.status`. El costo es bajo: dos sentencias indexadas por `event_id`; cada fila genera una versión nueva (MVCC) que limpiará autovacuum.
@@ -563,7 +563,9 @@ No crear índices duplicados a los que ya generan `PRIMARY KEY` y `UNIQUE`. Medi
 | Orden FIFO | **Acordada** | `waitlist_order` monotónico por evento bajo lock |
 | Estados de charla | **Acordada** | `DRAFT`, `SCHEDULED`, `CANCELLED`; solo `SCHEDULED` reserva sala |
 | Alta de charla sin sede | **Acordada** | Permitir borrador; programar requiere sala válida en sede del evento |
-| Cancelación de interés | **Pendiente** | Retirar intereses activos cuando el usuario cancela inscripción |
+| Cancelación de interés | **Acordada** | Al cancelar la inscripción o el evento, los intereses activos se retiran (`withdrawn_at`) en la misma transacción |
+| Estados del evento | **Acordada** | `DRAFT`→`PUBLISHED` (sede activa y sin haber empezado), `PUBLISHED`→`COMPLETED` (manual, después de `ends_at`), `DRAFT`/`PUBLISHED`→`CANCELLED`. No se vuelve a `DRAFT`; `CANCELLED` y `COMPLETED` son finales. Repetir la transición al estado actual devuelve el evento sin cambios |
+| Edición de eventos | **Acordada** | Solo `DRAFT`/`PUBLISHED`. Aforo: no baja de confirmados y al subir promociona la espera (§7.3). Fechas: las charlas no canceladas deben quedar dentro. Sede: activa, no cambia con charlas `SCHEDULED` y un evento publicado no puede quedarse sin ella. `registration_closes_at` ≤ `ends_at` |
 | Evento cancelado | **Acordada** | Inscripciones activas → `CANCELLED` con motivo `EVENT_CANCELLED` en el historial; charlas → `CANCELLED`; flujo en §7.6 |
 | Inscripción fuera de fecha | **Pendiente** | Cierre en `registration_closes_at` o, si falta, al comenzar evento |
 | Correos de promoción | **Fuera del MVP** | Estado consultable vía API; futuro outbox/notificaciones |

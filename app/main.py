@@ -8,6 +8,7 @@ from fastapi.routing import APIRoute
 from app.core.config import get_settings
 from app.core.database import engine
 from app.modules.auth.router import router as auth_router
+from app.modules.events.router import router as events_router
 from app.modules.health.router import router as health_router
 from app.modules.speakers.router import router as speakers_router
 from app.modules.users.router import router as users_router
@@ -51,6 +52,11 @@ OPENAPI_TAGS = [
     {"name": "users", "description": "User accounts and profiles."},
     {"name": "venues", "description": "Venues and their rooms. Managed by admins."},
     {
+        "name": "events",
+        "description": "Events and their lifecycle (draft, published, completed, "
+        "cancelled). Owners and admins manage them; drafts are visible only to them.",
+    },
+    {
         "name": "speakers",
         "description": "Speaker profiles, shared by every event. "
         "Managed by organizers and admins.",
@@ -90,6 +96,7 @@ api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
 api_router.include_router(venues_router)
+api_router.include_router(events_router)
 api_router.include_router(speakers_router)
 
 app.include_router(health_router)

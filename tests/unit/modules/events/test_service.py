@@ -135,26 +135,34 @@ def test_list_events_scopes_drafts_to_the_viewer(
 
 
 @pytest.mark.parametrize(
-    ("roles", "allowed"),
-    [((RoleCode.ORGANIZER,), False), ((RoleCode.ADMIN,), True)],
-    ids=["other-organizer", "admin"],
+    ("owner_id", "roles", "allowed"),
+    [
+        (1, (RoleCode.ORGANIZER,), True),
+        (9, (RoleCode.ORGANIZER,), False),
+        (1, (RoleCode.ATTENDEE,), False),
+        (9, (RoleCode.ADMIN,), True),
+    ],
+    ids=["organizer-owner", "other-organizer", "owner-without-role", "admin"],
 )
-def test_only_the_owner_or_an_admin_can_change_an_event(
+def test_only_an_organizer_owner_or_an_admin_can_change_an_event(
     monkeypatch: pytest.MonkeyPatch,
     stored: Callable[[Event], Event],
+    owner_id: int,
     roles: tuple[RoleCode, ...],
     allowed: bool,
 ) -> None:
-    event = stored(make_event(EventStatus.PUBLISHED, owner_id=9))
+    stored(make_event(EventStatus.PUBLISHED, owner_id=owner_id))
     grant(monkeypatch, *roles)
+    session = Mock(spec=Session)
 
     if allowed:
-        events_service.update_event(Mock(spec=Session), VIEWER, 42, EventUpdate())
+        events_service.update_event(session, VIEWER, 42, EventUpdate(title="New"))
+        session.commit.assert_called_once()
     else:
         with pytest.raises(AppError) as info:
-            events_service.update_event(Mock(spec=Session), VIEWER, 42, EventUpdate())
+            events_service.update_event(session, VIEWER, 42, EventUpdate(title="New"))
         assert info.value.code == "not_event_owner"
-    assert event.owner_id == 9
+        session.commit.assert_not_called()
 
 
 @pytest.mark.parametrize(

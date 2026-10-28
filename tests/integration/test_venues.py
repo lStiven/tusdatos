@@ -43,19 +43,15 @@ def test_room_names_are_unique_within_each_venue(admin: TestClient) -> None:
     assert elsewhere.status_code == 201
 
 
-def test_lists_venues_by_name_filtered_and_paginated(admin: TestClient) -> None:
+def test_lists_venues_by_name_filtered_by_status(admin: TestClient) -> None:
     for name in ("Beta", "Alfa"):
         create_venue(admin, name)
     closed = create_venue(admin, "Cerrada")
     admin.patch(f"/api/v1/venues/{closed}", json={"is_active": False})
 
-    pages = [
-        admin.get(f"/api/v1/venues?is_active=true&limit=1&offset={offset}").json()
-        for offset in (0, 1)
-    ]
+    active = admin.get("/api/v1/venues?is_active=true").json()
 
-    assert [page["total"] for page in pages] == [2, 2]
-    assert [page["items"][0]["name"] for page in pages] == ["Alfa", "Beta"]
+    assert [venue["name"] for venue in active] == ["Alfa", "Beta"]
 
 
 def test_only_upcoming_scheduled_sessions_bind_a_room(

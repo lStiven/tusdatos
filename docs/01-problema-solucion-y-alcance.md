@@ -44,6 +44,8 @@ La solución consiste en una **plataforma centralizada** que gestione usuarios y
 
 - Una nueva cuenta recibe el rol `ATTENDEE`; nunca puede asignarse a sí misma `ORGANIZER` o `ADMIN`.
 - Solo un administrador puede elevar privilegios.
+- Un administrador concede o retira `ORGANIZER` y `ADMIN` (`PUT`/`DELETE /users/{id}/roles/{rol}`, idempotentes, con `assigned_by`). `ATTENDEE` es de toda cuenta y no se retira. Siempre queda al menos un `ADMIN` activo; la retirada bloquea la fila del rol `ADMIN` para que dos retiradas simultáneas no dejen el sistema sin administradores.
+- Modificar un evento exige ser administrador o ser su propietario **con** rol `ORGANIZER`: quien pierde el rol conserva la propiedad y la visibilidad de sus borradores, pero solo un administrador puede cambiarlos.
 - El evento registra un `owner_id` (creador/propietario). La autorización comprueba rol **y** propiedad en todas las operaciones protegidas.
 - La autorización también aplica a las sesiones: el organizador solo puede modificar charlas del evento que posee.
 - Administrar salas compartidas y asignar roles es responsabilidad del administrador, para evitar que un organizador bloquee o altere recursos de otro.

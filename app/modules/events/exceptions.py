@@ -14,7 +14,8 @@ class NotEventOwnerError(ForbiddenError):
     code = "not_event_owner"
     message = "Only the owner of the event or an admin can change it"
     description = (
-        "The event belongs to another organizer; only they or an admin can change it."
+        "The event belongs to another organizer, or the owner no longer has the "
+        "`ORGANIZER` role; only an organizer owner or an admin can change it."
     )
 
 

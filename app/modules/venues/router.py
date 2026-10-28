@@ -23,7 +23,6 @@ from app.modules.venues.schemas import (
 )
 from app.shared.dependencies import SessionDep
 from app.shared.exceptions import ForbiddenError, error_responses
-from app.shared.pagination import Page, PageParamsDep
 
 router = APIRouter(
     prefix="/venues", tags=["venues"], dependencies=[Depends(get_current_user)]
@@ -47,25 +46,19 @@ def create_venue(data: VenueCreate, session: SessionDep) -> VenueRead:
 
 @router.get(
     "",
-    response_model=Page[VenueRead],
+    response_model=list[VenueRead],
     summary="List venues",
-    description="Venues ordered by name, active and inactive unless filtered.",
+    description="All venues ordered by name, active and inactive unless filtered.",
     responses=error_responses(*AUTHENTICATION_ERRORS),
 )
 def list_venues(
     session: SessionDep,
-    page: PageParamsDep,
     is_active: Annotated[
         bool | None, Query(description="Filter by status; omit to get all")
     ] = None,
-) -> Page[VenueRead]:
-    venues, total = venues_service.list_venues(session, is_active=is_active, page=page)
-    return Page(
-        items=[VenueRead.model_validate(venue) for venue in venues],
-        total=total,
-        limit=page.limit,
-        offset=page.offset,
-    )
+) -> list[VenueRead]:
+    venues = venues_service.list_venues(session, is_active=is_active)
+    return [VenueRead.model_validate(venue) for venue in venues]
 
 
 @router.get(

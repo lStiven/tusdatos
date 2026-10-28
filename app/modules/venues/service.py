@@ -15,7 +15,6 @@ from app.modules.venues.exceptions import (
 from app.modules.venues.models import Room, Venue
 from app.modules.venues.schemas import RoomCreate, RoomUpdate, VenueCreate, VenueUpdate
 from app.shared.exceptions import violated_constraint
-from app.shared.pagination import PageParams
 
 
 def create_venue(session: Session, data: VenueCreate) -> Venue:
@@ -26,12 +25,8 @@ def create_venue(session: Session, data: VenueCreate) -> Venue:
     return venue
 
 
-def list_venues(
-    session: Session, *, is_active: bool | None, page: PageParams
-) -> tuple[Sequence[Venue], int]:
-    return venues_repository.list_venues(
-        session, is_active=is_active, limit=page.limit, offset=page.offset
-    )
+def list_venues(session: Session, *, is_active: bool | None) -> Sequence[Venue]:
+    return venues_repository.list_venues(session, is_active=is_active)
 
 
 def get_venue(session: Session, venue_id: int, *, for_update: bool = False) -> Venue:

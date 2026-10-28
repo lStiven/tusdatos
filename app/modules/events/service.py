@@ -149,10 +149,12 @@ def cancel_event(session: Session, actor: User, event_id: int) -> Event:
 
 def _get_for_change(session: Session, actor: User, event_id: int) -> Event:
     event = events_repository.get_event(session, event_id, for_update=True)
-    is_admin = _is_admin(session, actor)
+    roles = users_repository.get_role_codes(session, id_of(actor))
+    is_admin = RoleCode.ADMIN in roles
     if event is None or not _can_see(event, actor, is_admin):
         raise EventNotFoundError()
-    if event.owner_id != actor.id and not is_admin:
+    is_organizer_owner = event.owner_id == actor.id and RoleCode.ORGANIZER in roles
+    if not (is_admin or is_organizer_owner):
         raise NotEventOwnerError()
     return event
 

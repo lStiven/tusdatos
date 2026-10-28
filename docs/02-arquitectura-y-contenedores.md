@@ -222,6 +222,7 @@ Usar Docker multi-stage y `uv sync --locked` ayuda a generar builds consistentes
 | PostgreSQL gestionado para producción | Recomendado | Menor riesgo operacional |
 | Kubernetes | Fuera del MVP | Sobrecosto de complejidad |
 | Servicio de email / cola asíncrona | Futuro | MVP puede consultar estados por API |
+| Paginación `limit`/`offset` solo en colecciones que crecen con el uso (`events`, `users`, `speakers`) | Aprobada | Las acotadas por el negocio (sedes, salas de una sede) devuelven la lista completa: paginarlas obliga al cliente a gestionar páginas sin beneficio y añade un `COUNT` por petición. Orden total (`…, id`) para que las páginas no se solapen. Cursor (keyset) solo si se mide que `OFFSET` es un problema |
 
 ## 11. Referencias oficiales
 

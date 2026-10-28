@@ -9,7 +9,6 @@ from app.modules.users import repository as users_repository
 from app.modules.users.models import RoleCode, User
 from app.modules.venues import service as venues_service
 from app.modules.venues.models import Venue
-from app.shared.pagination import PageParams
 
 USER = User(id=1, email="ana@example.com", password_hash="hash", full_name="Ana")
 VENUE = Venue(id=7, name="Ágora", address=None, city="Bogotá", is_active=True)
@@ -69,28 +68,21 @@ def test_create_venue_returns_201(
 
 
 @pytest.mark.usefixtures("as_admin")
-def test_list_venues_passes_filters_and_returns_a_page(
+def test_list_venues_passes_the_filter_and_returns_every_venue(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    received: list[tuple[bool | None, PageParams]] = []
+    received: list[bool | None] = []
 
-    def list_venues(
-        session: object, *, is_active: bool | None, page: PageParams
-    ) -> tuple[list[Venue], int]:
-        received.append((is_active, page))
-        return [VENUE], 3
+    def list_venues(session: object, *, is_active: bool | None) -> list[Venue]:
+        received.append(is_active)
+        return [VENUE]
 
     monkeypatch.setattr(venues_service, "list_venues", list_venues)
 
-    response = client.get("/api/v1/venues?is_active=true&limit=1&offset=2")
+    response = client.get("/api/v1/venues?is_active=true")
 
-    assert received == [(True, PageParams(limit=1, offset=2))]
-    assert response.json() == {
-        "items": [VENUE_JSON],
-        "total": 3,
-        "limit": 1,
-        "offset": 2,
-    }
+    assert received == [True]
+    assert response.json() == [VENUE_JSON]
 
 
 @pytest.mark.usefixtures("as_admin")
@@ -105,9 +97,8 @@ def test_list_venues_passes_filters_and_returns_a_page(
             "body.capacity",
         ),
         ("patch", "/api/v1/venues/7/rooms/12", {"is_active": None}, "body.is_active"),
-        ("get", "/api/v1/venues?limit=101", None, "query.limit"),
     ],
-    ids=["null-venue-name", "empty-room", "null-room-status", "page-too-big"],
+    ids=["null-venue-name", "empty-room", "null-room-status"],
 )
 def test_rejects_invalid_input(
     client: TestClient,

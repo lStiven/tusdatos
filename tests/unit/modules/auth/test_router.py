@@ -9,7 +9,11 @@ from app.modules.users.schemas import UserRead
 
 USER = User(id=1, email="ana@example.com", password_hash="hash", full_name="Ana")
 PROFILE = UserRead(
-    id=1, email="ana@example.com", full_name="Ana", roles=[RoleCode.ATTENDEE]
+    id=1,
+    email="ana@example.com",
+    full_name="Ana",
+    is_active=True,
+    roles=[RoleCode.ATTENDEE],
 )
 REGISTRATION = {
     "email": "ana@example.com",

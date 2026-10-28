@@ -49,7 +49,7 @@ every item that matches the filters. There is a next page while
 
 OPENAPI_TAGS = [
     {"name": "auth", "description": "Registration and login."},
-    {"name": "users", "description": "User accounts and profiles."},
+    {"name": "users", "description": "User accounts, profiles and role management."},
     {"name": "venues", "description": "Venues and their rooms. Managed by admins."},
     {
         "name": "events",

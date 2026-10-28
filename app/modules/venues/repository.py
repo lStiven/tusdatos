@@ -13,17 +13,11 @@ def get_venue(
     return session.get(Venue, venue_id, with_for_update=for_update)
 
 
-def list_venues(
-    session: Session, *, is_active: bool | None, limit: int, offset: int
-) -> tuple[Sequence[Venue], int]:
-    statement = select(Venue)
+def list_venues(session: Session, *, is_active: bool | None) -> Sequence[Venue]:
+    statement = select(Venue).order_by(col(Venue.name), col(Venue.id))
     if is_active is not None:
         statement = statement.where(Venue.is_active == is_active)
-    total = session.exec(select(func.count()).select_from(statement.subquery())).one()
-    page = (
-        statement.order_by(col(Venue.name), col(Venue.id)).limit(limit).offset(offset)
-    )
-    return session.exec(page).all(), total
+    return session.exec(statement).all()
 
 
 def get_room(

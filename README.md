@@ -74,6 +74,6 @@ Las cuentas creadas con `POST /api/v1/auth/register` solo reciben `ATTENDEE`; `j
 
 ## Estado actual
 
-Implementados: esquema completo de base de datos con migraciones, autenticación (registro, login JWT), usuarios y roles, sedes y salas, ponentes, eventos, inscripciones con lista de espera, y health check. Pendiente: charlas e interés por charla. El detalle y el siguiente paso están en [docs/PROGRESO.md](docs/PROGRESO.md).
+Implementados: esquema completo de base de datos con migraciones, autenticación (registro, login JWT), usuarios y roles, sedes y salas, ponentes, eventos, inscripciones con lista de espera, charlas (salas y ponentes sin solapamientos, interés y métricas por charla), y health check. El detalle y el siguiente paso están en [docs/PROGRESO.md](docs/PROGRESO.md).
 
 Los artefactos de producción que describe docs/02 (imagen final, compose de producción, despliegue) aún no existen: hoy solo hay entorno de desarrollo.

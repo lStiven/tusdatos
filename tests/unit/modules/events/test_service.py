@@ -97,6 +97,23 @@ def test_get_event_hides_other_peoples_drafts(
 
 
 @pytest.mark.parametrize(
+    ("owner_id", "roles", "sees"),
+    [(1, (), True), (9, (RoleCode.ADMIN,), True), (9, (RoleCode.ORGANIZER,), False)],
+    ids=["owner", "admin", "other-organizer"],
+)
+def test_only_the_owner_and_admins_see_drafts_of_a_published_event(
+    monkeypatch: pytest.MonkeyPatch,
+    owner_id: int,
+    roles: tuple[RoleCode, ...],
+    sees: bool,
+) -> None:
+    grant(monkeypatch, *roles)
+    event = make_event(EventStatus.PUBLISHED, owner_id)
+
+    assert events_service.can_see_drafts(Mock(spec=Session), VIEWER, event) is sees
+
+
+@pytest.mark.parametrize(
     ("roles", "mine", "viewer_id", "owner_id"),
     [
         ((RoleCode.ORGANIZER,), False, 1, None),

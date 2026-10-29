@@ -498,6 +498,17 @@ Una sola transacción, con el mismo orden global de bloqueos (evento primero):
 
 Así el estado de cada inscripción es verdadero por sí solo: las consultas de «mis inscripciones», el conteo de confirmados y la regla de interés (§3.4) no necesitan consultar `events.status`. El costo es bajo: dos sentencias indexadas por `event_id`; cada fila genera una versión nueva (MVCC) que limpiará autovacuum.
 
+### 7.7 Marcar interés en una charla
+
+No toma el lock del evento, que es el más disputado en las ráfagas de inscripción. En su lugar bloquea con `FOR SHARE`, en este orden, **la inscripción del usuario y después la charla**: el mismo orden en que cancelar el evento actualiza inscripciones y charlas, para que no haya deadlock.
+
+1. Comprobar que el evento y la charla son visibles para el usuario.
+2. `SELECT … FOR SHARE` de su inscripción y luego de la charla. Una cancelación concurrente de cualquiera de las dos espera a este `COMMIT`, o este espera a la suya y lee el estado ya cancelado.
+3. Exigir inscripción `CONFIRMED` y charla `SCHEDULED` que aún no empieza.
+4. `INSERT … ON CONFLICT (user_id, session_id) DO UPDATE` que reactiva un interés retirado; uno activo queda igual.
+
+`FOR KEY SHARE` no serviría: no choca con un `UPDATE` que no cambia la clave, como el que cancela la inscripción. Sin este bloqueo, una cancelación podría retirar los intereses antes de que este se confirme y dejar un interés activo de alguien sin plaza.
+
 ## 8. Política de integridad y borrado
 
 - **Usuarios:** preferir `is_active=false`; conservar referencias históricas. El borrado de datos personales deberá diseñarse conforme a requisitos legales específicos.
@@ -556,13 +567,17 @@ No crear índices duplicados a los que ya generan `PRIMARY KEY` y `UNIQUE`. Medi
 | DB-13 | Sala con capacidad menor que charla existente | Cambio de aforo rechazado |
 | DB-14 | Transacción falla antes de commit | No quedan cambios parciales ni historial incorrecto |
 | DB-15 | Un enum de Python gana o pierde un valor sin su migración | Falla el test: cada `CHECK` de enum admite exactamente los valores de Python (`alembic check` no compara `CHECK`) |
+| DB-16 | Marcar interés mientras se cancela la inscripción | Nunca queda un interés activo con la inscripción cancelada (§7.7) |
 
 ## 12. Riesgos y decisiones por cerrar
 
 | Punto | Estado | Propuesta / impacto |
 |---|---|---|
 | Orden FIFO | **Acordada** | `waitlist_order` monotónico por evento bajo lock |
-| Estados de charla | **Acordada** | `DRAFT`, `SCHEDULED`, `CANCELLED`; solo `SCHEDULED` reserva sala |
+| Estados de charla | **Acordada** | `DRAFT`, `SCHEDULED`, `CANCELLED`; solo `SCHEDULED` reserva sala. `DRAFT`↔`SCHEDULED`: programar revalida todo y volver a `DRAFT` libera la sala y conserva los intereses. `CANCELLED` es final y retira los intereses activos. Repetir la transición devuelve la charla sin cambios. Solo se cambian charlas de eventos `DRAFT`/`PUBLISHED` |
+| Visibilidad de charlas | **Acordada** | Las `DRAFT` solo las ven el dueño del evento y `ADMIN` (404 para el resto); los asistentes ven `SCHEDULED` y `CANCELLED` |
+| Interés por charla | **Acordada** | Con inscripción `CONFIRMED`, solo en charlas `SCHEDULED` que no han empezado; retirarlo siempre se permite. Bloqueos en §7.7 |
+| Sobredemanda | **Acordada** | Interesados por encima de la **capacidad de la charla** (nunca supera la de su sala); el porcentaje de interés usa la misma base y la respuesta incluye el aforo de la sala |
 | Alta de charla sin sede | **Acordada** | Permitir borrador; programar requiere sala válida en sede del evento |
 | Cancelación de interés | **Acordada** | Al cancelar la inscripción o el evento, los intereses activos se retiran (`withdrawn_at`) en la misma transacción |
 | Estados del evento | **Acordada** | `DRAFT`→`PUBLISHED` (sede activa y sin haber empezado), `PUBLISHED`→`COMPLETED` (manual, después de `ends_at`), `DRAFT`/`PUBLISHED`→`CANCELLED`. No se vuelve a `DRAFT`; `CANCELLED` y `COMPLETED` son finales. Repetir la transición al estado actual devuelve el evento sin cambios |

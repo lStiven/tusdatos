@@ -11,6 +11,7 @@ from app.modules.auth.router import router as auth_router
 from app.modules.events.router import router as events_router
 from app.modules.health.router import router as health_router
 from app.modules.registrations.router import router as registrations_router
+from app.modules.sessions.router import router as sessions_router
 from app.modules.speakers.router import router as speakers_router
 from app.modules.users.router import router as users_router
 from app.modules.venues.router import router as venues_router
@@ -62,6 +63,11 @@ OPENAPI_TAGS = [
         "description": "Registrations to events: confirmed seats and the waitlist.",
     },
     {
+        "name": "sessions",
+        "description": "Talks of an event: rooms and speakers without overlaps, "
+        "and attendees' interest as an estimate of demand.",
+    },
+    {
         "name": "speakers",
         "description": "Speaker profiles, shared by every event. "
         "Managed by organizers and admins.",
@@ -103,6 +109,7 @@ api_router.include_router(users_router)
 api_router.include_router(venues_router)
 api_router.include_router(events_router)
 api_router.include_router(registrations_router)
+api_router.include_router(sessions_router)
 api_router.include_router(speakers_router)
 
 app.include_router(health_router)

@@ -81,9 +81,7 @@ def create_event(session: Session, owner: User, data: EventCreate) -> Event:
 def update_event(
     session: Session, actor: User, event_id: int, data: EventUpdate
 ) -> Event:
-    event = get_managed_event(session, actor, event_id)
-    if event.status not in _EDITABLE:
-        raise EventNotEditableError()
+    event = get_editable_event(session, actor, event_id)
     changes = data.model_dump(exclude_unset=True)
     starts_at: datetime = changes.get("starts_at", event.starts_at)
     ends_at: datetime = changes.get("ends_at", event.ends_at)
@@ -159,6 +157,23 @@ def get_managed_event(
     if not (is_admin or is_organizer_owner):
         raise NotEventOwnerError()
     return event
+
+
+def get_editable_event(session: Session, actor: User, event_id: int) -> Event:
+    """Lock and return a managed event that is still `DRAFT` or `PUBLISHED`."""
+    event = get_managed_event(session, actor, event_id)
+    ensure_editable(event)
+    return event
+
+
+def ensure_editable(event: Event) -> None:
+    if event.status not in _EDITABLE:
+        raise EventNotEditableError()
+
+
+def can_see_drafts(session: Session, viewer: User, event: Event) -> bool:
+    """Drafts, of the event or of its sessions, are for its owner and admins."""
+    return event.owner_id == viewer.id or _is_admin(session, viewer)
 
 
 def _starts_transition(event: Event, target: EventStatus) -> bool:

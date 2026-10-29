@@ -234,7 +234,7 @@ Venta de entradas y pagos, check-in físico con QR, correo de notificación gara
 - Puede indicar interés por todas las charlas, incluso con solapamientos.
 - No puede crear intereses duplicados.
 - El interés no garantiza asiento ni resta capacidad de una charla.
-- Si el interés supera el aforo de sala, se muestra un indicador de sobredemanda.
+- Si el interés supera la capacidad de la charla (que nunca excede el aforo de su sala), se muestra un indicador de sobredemanda.
 - Una persona en lista de espera del evento no puede marcar interés como participante confirmado.
 
 ## 9. Métricas mínimas

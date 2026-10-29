@@ -1,10 +1,11 @@
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 
 from sqlalchemy import ColumnElement
 from sqlmodel import Session, col, func, select
 
 from app.modules.sessions.models import EventSession, SessionStatus
 from app.modules.venues.models import Room, Venue
+from app.shared.models import id_of
 
 
 def get_venue(
@@ -46,6 +47,18 @@ def lock_rooms(session: Session, venue_id: int) -> None:
         .with_for_update()
     )
     session.exec(statement).all()
+
+
+def lock_rooms_by_id(session: Session, room_ids: Collection[int]) -> dict[int, Room]:
+    if not room_ids:
+        return {}
+    statement = (
+        select(Room)
+        .where(col(Room.id).in_(room_ids))
+        .order_by(col(Room.id))
+        .with_for_update()
+    )
+    return {id_of(room): room for room in session.exec(statement).all()}
 
 
 def _upcoming_scheduled() -> tuple[ColumnElement[bool], ...]:

@@ -18,11 +18,13 @@ type WithPosition = tuple[EventRegistration, int | None]
 
 
 def get_for_user(
-    session: Session, event_id: int, user_id: int
+    session: Session, event_id: int, user_id: int, *, for_share: bool = False
 ) -> EventRegistration | None:
     statement = select(EventRegistration).where(
         EventRegistration.event_id == event_id, EventRegistration.user_id == user_id
     )
+    if for_share:
+        statement = statement.with_for_update(read=True)
     return session.exec(statement).first()
 
 

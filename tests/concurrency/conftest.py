@@ -84,12 +84,14 @@ def make_event(
     confirmed: Sequence[int] = (),
     waitlisted: Sequence[int] = (),
     owner_id: int | None = None,
+    venue_id: int | None = None,
 ) -> int:
     owner = owner_id or make_users(engine, 1, RoleCode.ORGANIZER)[0]
     now = utc_now()
     with Session(engine) as session:
         event = Event(
             owner_id=owner,
+            venue_id=venue_id,
             title="Concurrency",
             capacity=capacity,
             status=EventStatus.PUBLISHED,

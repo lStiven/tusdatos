@@ -103,7 +103,7 @@ Venta de entradas y pagos, check-in físico con QR, correo de notificación gara
 - No es otro tipo de evento ni concede acceso.
 - Es el conjunto de registros `WAITLISTED`, ordenados de manera determinista por `waitlist_order`, un secuenciador por evento asignado bajo bloqueo: **FIFO**.
 - Si se libera o incrementa el aforo, el sistema promueve primero a quienes ya esperan; una solicitud nueva no puede saltarse la cola.
-- La propuesta del MVP es **promoción automática**; se marca como decisión confirmable la política de aviso/aceptación del usuario.
+- El MVP usa **promoción automática e inmediata**; el usuario consulta su estado en la API (sin correo).
 
 ### Sala (`Room`) y sede (`Venue`)
 
@@ -283,15 +283,15 @@ Referencia: [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.
 
 | Tema | Valor provisional / pregunta | Motivo |
 |---|---|---|
-| Promoción de espera | Automática e inmediata (propuesta) o con ventana de aceptación | Puede haber usuarios que ya no puedan asistir |
-| Aviso de promoción | Consulta en API en MVP; email posterior | La entrega fiable de correo necesita infraestructura adicional |
-| Cierre de inscripciones | Al inicio del evento por defecto; posibilidad de `registration_closes_at` | Evita registros tardíos inesperados |
+| Promoción de espera | **Acordada:** automática e inmediata, sin ventana de aceptación (docs/04 «Precisiones de modelado») | Puede haber usuarios que ya no puedan asistir |
+| Aviso de promoción | **Acordada:** consulta en API en MVP; correo fuera del MVP (docs/04 §12) | La entrega fiable de correo necesita infraestructura adicional |
+| Cierre de inscripciones | **Acordada:** hasta `registration_closes_at` o, si falta, hasta el inicio; cancelar, hasta el inicio (docs/04 §12) | Evita registros tardíos inesperados |
 | Edición durante un evento | **Acordada:** editable en `DRAFT`/`PUBLISHED` con guardas de aforo, fechas y sede (docs/04 §12) | Modificar horarios/cupos puede afectar inscritos |
 | Sedes | MVP con eventos presenciales de una sola sede | Eventos virtuales/híbridos requerirán extensión |
 | Eliminación | Preferir baja lógica o cancelación cuando hay inscripciones | Conserva trazabilidad |
 | Disponibilidad de salas fuera de charlas | Reservas y bloqueos por mantenimiento: futura extensión | Afecta calendario de instalaciones |
 | Protección de contraseñas | **Acordada:** Argon2id (ver «Seguridad de contraseñas») | Implicación crítica de seguridad |
-| Historial de movimientos | Tabla auditable recomendada desde MVP | Facilita diagnosticar promociones y disputas |
+| Historial de movimientos | **Acordada:** tabla append-only desde el MVP, con motivos cerrados (docs/04 §3.3 y §12) | Facilita diagnosticar promociones y disputas |
 
 ## 13. Definición de terminado para el MVP
 

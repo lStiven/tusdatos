@@ -193,7 +193,7 @@ def test_raising_capacity_promotes_the_waitlist_in_order(
     for registration in queue:
         session.refresh(registration)
     assert [r.status for r in queue] == ["CONFIRMED", "CONFIRMED", "WAITLISTED"]
-    assert history(session, queue[0]) == [("CAPACITY_INCREASED", "CONFIRMED")]
+    assert history(session, queue[0]) == [("PROMOTED", "CONFIRMED")]
     assert history(session, queue[2]) == []
 
 

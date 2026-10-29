@@ -10,6 +10,7 @@ from app.modules.events import service as events_service
 from app.modules.events.models import Event, EventStatus
 from app.modules.events.schemas import EventUpdate
 from app.modules.registrations import repository as registrations_repository
+from app.modules.registrations.models import RegistrationReason
 from app.modules.sessions import repository as sessions_repository
 from app.modules.users import repository as users_repository
 from app.modules.users.models import RoleCode, User
@@ -84,7 +85,7 @@ def test_get_event_hides_other_peoples_drafts(
     visible: bool,
 ) -> None:
     event = make_event(status, owner_id)
-    monkeypatch.setattr(events_repository, "get_event", lambda session, event_id: event)
+    monkeypatch.setattr(events_repository, "get_event", lambda *a, **k: event)
     grant(monkeypatch, *roles)
 
     if visible:
@@ -284,7 +285,10 @@ def test_cancel_cancels_registrations_and_sessions_in_the_same_transaction(
     events_service.cancel_event(session, VIEWER, 42)
 
     assert calls == [
-        ("registrations", {"changed_by": 1, "reason": "EVENT_CANCELLED"}),
+        (
+            "registrations",
+            {"changed_by": 1, "reason": RegistrationReason.EVENT_CANCELLED},
+        ),
         ("sessions", 42),
         ("commit", EventStatus.CANCELLED),
     ]

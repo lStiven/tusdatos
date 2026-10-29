@@ -189,13 +189,12 @@ def test_every_operation_is_protected_and_documented(client: TestClient) -> None
     operations = {
         (method, path): operation
         for path, item in paths.items()
-        if path.startswith("/api/v1/events")
         for method, operation in item.items()
+        if operation["tags"] == ["events"]
     }
 
     assert len(operations) == 7
     for (method, _), operation in operations.items():
-        assert operation["tags"] == ["events"]
         assert operation["security"] == [{"OAuth2PasswordBearer": []}]
         assert "401" in operation["responses"]
         assert ("403" in operation["responses"]) == (method != "get")

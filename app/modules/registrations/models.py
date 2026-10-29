@@ -13,6 +13,16 @@ class RegistrationStatus(StrEnum):
     CANCELLED = "CANCELLED"
 
 
+class RegistrationReason(StrEnum):
+    """Why a registration changed status; stored in its history (docs/04 §3.3)."""
+
+    REGISTERED = "REGISTERED"
+    EVENT_FULL = "EVENT_FULL"
+    PROMOTED = "PROMOTED"
+    USER_CANCELLED = "USER_CANCELLED"
+    EVENT_CANCELLED = "EVENT_CANCELLED"
+
+
 class EventRegistration(TimestampedModel, table=True):
     __tablename__ = "event_registrations"  # pyright: ignore[reportAssignmentType]
     __table_args__ = (

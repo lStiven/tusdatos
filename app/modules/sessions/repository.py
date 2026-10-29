@@ -54,3 +54,16 @@ def cancel_for_event(session: Session, event_id: int) -> None:
         )
         .values(status=SessionStatus.CANCELLED)
     )
+
+
+def withdraw_interests(session: Session, event_id: int, user_id: int) -> None:
+    event_sessions = select(EventSession.id).where(EventSession.event_id == event_id)
+    session.exec(
+        update(SessionInterest)
+        .where(
+            col(SessionInterest.user_id) == user_id,
+            col(SessionInterest.session_id).in_(event_sessions),
+            col(SessionInterest.withdrawn_at).is_(None),
+        )
+        .values(withdrawn_at=func.now())
+    )

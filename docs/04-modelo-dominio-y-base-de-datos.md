@@ -228,7 +228,7 @@ Tipos convencionales: `BIGINT` (identidad), `VARCHAR(n)`, `TEXT`, `BOOLEAN`, `IN
 | `next_waitlist_order` | `BIGINT` | No | `DEFAULT 1`, `CHECK (next_waitlist_order > 0)`; secuenciador FIFO bajo lock |
 | `status` | `VARCHAR(16)` | No | `DRAFT`, `PUBLISHED`, `CANCELLED`, `COMPLETED` |
 | `starts_at`, `ends_at` | `TIMESTAMPTZ` | No | `CHECK (starts_at < ends_at)` |
-| `registration_closes_at` | `TIMESTAMPTZ` | Sí | Si no se define, se cierra al inicio del evento (política provisional) |
+| `registration_closes_at` | `TIMESTAMPTZ` | Sí | Si no se define, se cierra al inicio del evento (acordada, §12) |
 | `timezone` | `VARCHAR(64)` | No | Zona IANA, validada en aplicación |
 | `created_at`, `updated_at` | `TIMESTAMPTZ` | No | Auditoría básica |
 
@@ -263,7 +263,7 @@ Tipos convencionales: `BIGINT` (identidad), `VARCHAR(n)`, `TEXT`, `BOOLEAN`, `IN
 | `registration_id` | `BIGINT` | No | FK → `event_registrations.id` |
 | `from_status` | `VARCHAR(16)` | Sí | `NULL` para la primera alta |
 | `to_status` | `VARCHAR(16)` | No | Nuevo estado |
-| `reason` | `VARCHAR(80)` | No | Ej.: `REGISTERED`, `EVENT_FULL`, `PROMOTED`, `USER_CANCELLED`, `EVENT_CANCELLED` |
+| `reason` | `VARCHAR(80)` | No | Lista cerrada (§12): `REGISTERED`, `EVENT_FULL`, `PROMOTED`, `USER_CANCELLED`, `EVENT_CANCELLED`. Sin `CHECK`: la garantiza el enum `RegistrationReason` en código |
 | `waitlist_order` | `BIGINT` | Sí | Fotografía de la posición, cuando aplica |
 | `changed_by` | `BIGINT` | Sí | FK → `users.id`; `NULL` para acción automática |
 | `created_at` | `TIMESTAMPTZ` | No | Instante del cambio |
@@ -320,7 +320,7 @@ La FK única del ponente **no evita por sí sola** que participe simultáneament
 
 **Unicidad:** `UNIQUE (user_id, session_id)`. Para activar interés, verificar que el usuario tiene inscripción `CONFIRMED` **en el evento al que pertenece la charla**, no únicamente en cualquier evento. El interés puede exceder el aforo y puede corresponder a charlas simultáneas: se reporta como demanda estimada.
 
-**Precisión pendiente:** al cancelar una inscripción confirmada proponemos retirar los intereses activos de ese usuario en ese evento en la misma transacción; la aplicación mantendrá el histórico `withdrawn_at`. Hay que confirmar este comportamiento antes de implementarlo.
+**Al cancelar** una inscripción (o el evento), los intereses activos de ese usuario en las charlas del evento se retiran en la misma transacción (`withdrawn_at`), sin borrar filas (§12).
 
 ## 4. Relaciones y cardinalidades clave
 
@@ -555,6 +555,7 @@ No crear índices duplicados a los que ya generan `PRIMARY KEY` y `UNIQUE`. Medi
 | DB-12 | Reducción concurrente de aforo | No se permite quedar por debajo de confirmados |
 | DB-13 | Sala con capacidad menor que charla existente | Cambio de aforo rechazado |
 | DB-14 | Transacción falla antes de commit | No quedan cambios parciales ni historial incorrecto |
+| DB-15 | Un enum de Python gana o pierde un valor sin su migración | Falla el test: cada `CHECK` de enum admite exactamente los valores de Python (`alembic check` no compara `CHECK`) |
 
 ## 12. Riesgos y decisiones por cerrar
 
@@ -567,7 +568,10 @@ No crear índices duplicados a los que ya generan `PRIMARY KEY` y `UNIQUE`. Medi
 | Estados del evento | **Acordada** | `DRAFT`→`PUBLISHED` (sede activa y sin haber empezado), `PUBLISHED`→`COMPLETED` (manual, después de `ends_at`), `DRAFT`/`PUBLISHED`→`CANCELLED`. No se vuelve a `DRAFT`; `CANCELLED` y `COMPLETED` son finales. Repetir la transición al estado actual devuelve el evento sin cambios |
 | Edición de eventos | **Acordada** | Solo `DRAFT`/`PUBLISHED`. Aforo: no baja de confirmados y al subir promociona la espera (§7.3). Fechas: las charlas no canceladas deben quedar dentro. Sede: activa, no cambia con charlas `SCHEDULED` y un evento publicado no puede quedarse sin ella. `registration_closes_at` ≤ `ends_at` |
 | Evento cancelado | **Acordada** | Inscripciones activas → `CANCELLED` con motivo `EVENT_CANCELLED` en el historial; charlas → `CANCELLED`; flujo en §7.6 |
-| Inscripción fuera de fecha | **Pendiente** | Cierre en `registration_closes_at` o, si falta, al comenzar evento |
+| Inscripción fuera de fecha | **Acordada** | Inscribirse: solo eventos `PUBLISHED`, hasta `registration_closes_at` o, si falta, hasta `starts_at` (409 `registration_closed`). Cancelar: hasta `starts_at`, aunque haya cerrado la inscripción, porque el cupo liberado aún beneficia a la cola. Un reintento de quien ya está inscrito devuelve su inscripción aunque el plazo haya cerrado (C-08) |
+| Autoinscripción del propietario | **Acordada** | El dueño de un evento puede inscribirse a él como cualquier asistente; compite por cupo y cola sin privilegios |
+| Motivos del historial | **Acordada** | `REGISTERED`, `EVENT_FULL`, `PROMOTED`, `USER_CANCELLED`, `EVENT_CANCELLED`. Toda promoción (por cancelación o por aumento de aforo) es `PROMOTED` con `changed_by = NULL`: es automática |
+| `CHECK` en `reason` del historial | **Pendiente** | Propuesta: `VARCHAR(16)` + `CHECK` con la lista cerrada, como `status`; requiere migración con el `CHECK` escrito a mano |
 | Correos de promoción | **Fuera del MVP** | Estado consultable vía API; futuro outbox/notificaciones |
 | Hash de contraseñas | **Acordada** | Argon2id con `pwdlib`; ver docs/01 «Seguridad de contraseñas» |
 | Aforo del evento vs. ponentes/equipo | **Pendiente** | Por ahora la capacidad cuenta exclusivamente inscripciones confirmadas |

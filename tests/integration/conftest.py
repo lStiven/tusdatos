@@ -1,36 +1,12 @@
 from collections.abc import Iterator
 
 import pytest
-from alembic import command
-from alembic.config import Config
 from fastapi.testclient import TestClient
-from sqlalchemy import Connection, Engine, text
-from sqlmodel import Session, create_engine
+from sqlalchemy import Engine
+from sqlmodel import Session
 
-from app.core.config import PROJECT_ROOT, get_settings
 from app.core.database import get_session
 from app.main import app
-
-
-def alembic_config(connection: Connection) -> Config:
-    config = Config(PROJECT_ROOT / "alembic.ini")
-    config.attributes["connection"] = connection
-    config.attributes["configure_logger"] = False
-    return config
-
-
-@pytest.fixture(scope="session")
-def test_engine() -> Iterator[Engine]:
-    url = get_settings().test_database_url
-    if url is None:
-        pytest.fail("POSTGRES_TEST_DB is not set; integration tests need it")
-    engine = create_engine(url)
-    with engine.begin() as connection:
-        connection.execute(text("DROP SCHEMA public CASCADE"))
-        connection.execute(text("CREATE SCHEMA public"))
-        command.upgrade(alembic_config(connection), "head")
-    yield engine
-    engine.dispose()
 
 
 @pytest.fixture

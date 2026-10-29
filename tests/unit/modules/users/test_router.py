@@ -155,13 +155,13 @@ def test_admin_operations_are_documented(client: TestClient) -> None:
     operations = {
         (method, path): operation
         for path, item in paths.items()
-        if path.startswith("/api/v1/users") and path != "/api/v1/users/me"
+        if path != "/api/v1/users/me"
         for method, operation in item.items()
+        if operation["tags"] == ["users"]
     }
 
     assert len(operations) == 4
     for operation in operations.values():
-        assert operation["tags"] == ["users"]
         assert operation["security"] == [{"OAuth2PasswordBearer": []}]
         assert {"401", "403"} <= set(operation["responses"])
     revoke = operations[("delete", "/api/v1/users/{user_id}/roles/{role}")]

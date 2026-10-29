@@ -21,6 +21,7 @@ from app.modules.events.exceptions import (
 from app.modules.events.models import Event, EventStatus
 from app.modules.events.schemas import EventCreate, EventUpdate
 from app.modules.registrations import repository as registrations_repository
+from app.modules.registrations.models import RegistrationReason
 from app.modules.sessions import repository as sessions_repository
 from app.modules.users import repository as users_repository
 from app.modules.users.models import RoleCode, User
@@ -28,9 +29,6 @@ from app.modules.venues import service as venues_service
 from app.shared.datetimes import utc_now
 from app.shared.models import id_of
 from app.shared.pagination import PageParams
-
-EVENT_CANCELLED = "EVENT_CANCELLED"
-CAPACITY_INCREASED = "CAPACITY_INCREASED"
 
 _EDITABLE = (EventStatus.DRAFT, EventStatus.PUBLISHED)
 _ALLOWED_SOURCES = {
@@ -60,8 +58,10 @@ def list_events(
     )
 
 
-def get_event(session: Session, viewer: User, event_id: int) -> Event:
-    event = events_repository.get_event(session, event_id)
+def get_event(
+    session: Session, viewer: User, event_id: int, *, for_update: bool = False
+) -> Event:
+    event = events_repository.get_event(session, event_id, for_update=for_update)
     if event is None or not _can_see(event, viewer, _is_admin(session, viewer)):
         raise EventNotFoundError()
     return event
@@ -81,7 +81,7 @@ def create_event(session: Session, owner: User, data: EventCreate) -> Event:
 def update_event(
     session: Session, actor: User, event_id: int, data: EventUpdate
 ) -> Event:
-    event = _get_for_change(session, actor, event_id)
+    event = get_managed_event(session, actor, event_id)
     if event.status not in _EDITABLE:
         raise EventNotEditableError()
     changes = data.model_dump(exclude_unset=True)
@@ -104,11 +104,7 @@ def update_event(
     event.sqlmodel_update(changes)
     if free_seats:
         registrations_repository.promote_waitlisted(
-            session,
-            id_of(event),
-            limit=free_seats,
-            changed_by=id_of(actor),
-            reason=CAPACITY_INCREASED,
+            session, id_of(event), limit=free_seats
         )
     session.commit()
     session.refresh(event)
@@ -116,7 +112,7 @@ def update_event(
 
 
 def publish_event(session: Session, actor: User, event_id: int) -> Event:
-    event = _get_for_change(session, actor, event_id)
+    event = get_managed_event(session, actor, event_id)
     if not _starts_transition(event, EventStatus.PUBLISHED):
         return event
     if event.venue_id is None:
@@ -128,7 +124,7 @@ def publish_event(session: Session, actor: User, event_id: int) -> Event:
 
 
 def complete_event(session: Session, actor: User, event_id: int) -> Event:
-    event = _get_for_change(session, actor, event_id)
+    event = get_managed_event(session, actor, event_id)
     if not _starts_transition(event, EventStatus.COMPLETED):
         return event
     if utc_now() < event.ends_at:
@@ -137,18 +133,24 @@ def complete_event(session: Session, actor: User, event_id: int) -> Event:
 
 
 def cancel_event(session: Session, actor: User, event_id: int) -> Event:
-    event = _get_for_change(session, actor, event_id)
+    event = get_managed_event(session, actor, event_id)
     if not _starts_transition(event, EventStatus.CANCELLED):
         return event
     registrations_repository.cancel_active(
-        session, id_of(event), changed_by=id_of(actor), reason=EVENT_CANCELLED
+        session,
+        id_of(event),
+        changed_by=id_of(actor),
+        reason=RegistrationReason.EVENT_CANCELLED,
     )
     sessions_repository.cancel_for_event(session, id_of(event))
     return _save_status(session, event, EventStatus.CANCELLED)
 
 
-def _get_for_change(session: Session, actor: User, event_id: int) -> Event:
-    event = events_repository.get_event(session, event_id, for_update=True)
+def get_managed_event(
+    session: Session, actor: User, event_id: int, *, for_update: bool = True
+) -> Event:
+    """Return the event if the actor may manage it: an admin or its organizer owner."""
+    event = events_repository.get_event(session, event_id, for_update=for_update)
     roles = users_repository.get_role_codes(session, id_of(actor))
     is_admin = RoleCode.ADMIN in roles
     if event is None or not _can_see(event, actor, is_admin):

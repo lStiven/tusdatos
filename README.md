@@ -1,6 +1,6 @@
 # Mis Eventos — Sistema de gestión de eventos
 
-> Estado: MVP en desarrollo · Última actualización: 2026-10-28
+> Estado: MVP en desarrollo · Última actualización: 2026-10-29
 
 **Mis Eventos** es una plataforma API-first para organizar eventos, administrar conferencias y salas, gestionar inscripciones con capacidad limitada y lista de espera, y ofrecer datos confiables a organizadores y asistentes.
 
@@ -68,12 +68,12 @@ Las cuentas creadas con `POST /api/v1/auth/register` solo reciben `ATTENDEE`; `j
 
 | Comando | Qué hace |
 |---|---|
-| `just test` | Tests unitarios y de integración (estos usan la BD `POSTGRES_TEST_DB`, que se recrea en cada ejecución) |
+| `just test` | Tests unitarios, de integración y de concurrencia (los dos últimos usan la BD `POSTGRES_TEST_DB`, que se recrea en cada ejecución) |
 | `just prepare` | Formato + lint + tipos + tests; obligatorio antes de dar una tarea por terminada |
 | `just migration "mensaje"` | Genera una migración desde los modelos; revisarla a mano (ver docs/04 §10) |
 
 ## Estado actual
 
-Implementados: esquema completo de base de datos con migraciones, autenticación (registro, login JWT, roles), administración de sedes y salas, y health check. En curso: eventos, inscripciones y lista de espera, charlas y ponentes. El detalle y el siguiente paso están en [docs/PROGRESO.md](docs/PROGRESO.md).
+Implementados: esquema completo de base de datos con migraciones, autenticación (registro, login JWT), usuarios y roles, sedes y salas, ponentes, eventos, inscripciones con lista de espera, y health check. Pendiente: charlas e interés por charla. El detalle y el siguiente paso están en [docs/PROGRESO.md](docs/PROGRESO.md).
 
 Los artefactos de producción que describe docs/02 (imagen final, compose de producción, despliegue) aún no existen: hoy solo hay entorno de desarrollo.

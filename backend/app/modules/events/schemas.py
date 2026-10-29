@@ -124,3 +124,17 @@ class EventRead(BaseModel):
     timezone: str = Field(
         description="IANA time zone to display local times", examples=["America/Bogota"]
     )
+
+
+class EventSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int = Field(description="Event id", examples=[42])
+    title: str = Field(description="Event title", examples=["PyCon Colombia"])
+    status: EventStatus = Field(description="Lifecycle status", examples=["PUBLISHED"])
+    ends_at: datetime = Field(
+        description="End, in UTC", examples=["2026-11-22T23:00:00Z"]
+    )
+    timezone: str = Field(
+        description="IANA time zone to display local times", examples=["America/Bogota"]
+    )

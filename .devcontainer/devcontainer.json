@@ -1,68 +1,72 @@
 {
-  "name": "Mis eventos - Development",
-  "dockerComposeFile": "compose.yaml",
-  "service": "api",
-  "runServices": [
-    "api",
-    "postgres"
-  ],
-  "shutdownAction": "stopCompose",
-  "remoteUser": "vscode",
-  "updateRemoteUserUID": true,
-  "workspaceFolder": "/workspaces/tusdatos",
-  "containerEnv": {
-    "PYTHONDONTWRITEBYTECODE": "1",
-    "PYTHONUNBUFFERED": "1",
-    "UV_PYTHON_DOWNLOADS": "never",
-    "UV_LINK_MODE": "copy"
-  },
-  "forwardPorts": [
-    8000
-  ],
-  "portsAttributes": {
-    "8000": {
-      "label": "FastAPI",
-      "onAutoForward": "notify"
-    }
-  },
-  "postCreateCommand": "bash .devcontainer/post-create.sh",
-  "waitFor": "postCreateCommand",
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ms-python.debugpy",
-        "charliermarsh.ruff",
-        "redhat.vscode-yaml",
-        "tamasfe.even-better-toml",
-        "EditorConfig.EditorConfig",
-        "nefrob.vscode-just-syntax"
-      ],
-      "settings": {
-        "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
-        "python.testing.pytestEnabled": true,
-        "python.testing.unittestEnabled": false,
-        "python.testing.cwd": "${workspaceFolder}/backend",
-        "python.analysis.typeCheckingMode": "standard",
-        "python.analysis.diagnosticSeverityOverrides": {
-          "reportDeprecated": "error"
-        },
-        "ruff.path": [
-          "${workspaceFolder}/backend/.venv/bin/ruff"
-        ],
-        "ruff.configurationPreference": "filesystemFirst",
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "terminal.integrated.cwd": "${workspaceFolder}/backend",
-        "[python]": {
-          "editor.defaultFormatter": "charliermarsh.ruff",
-          "editor.formatOnSave": true,
-          "editor.codeActionsOnSave": {
-            "source.fixAll.ruff": "always",
-            "source.organizeImports.ruff": "always"
-          }
+    "name": "Mis eventos - Development",
+    "dockerComposeFile": "compose.yaml",
+    "service": "api",
+    "runServices": [
+        "api",
+        "postgres"
+    ],
+    "shutdownAction": "stopCompose",
+    "remoteUser": "vscode",
+    "updateRemoteUserUID": true,
+    "workspaceFolder": "/workspaces/tusdatos",
+    "containerEnv": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONUNBUFFERED": "1",
+        "UV_PYTHON_DOWNLOADS": "never",
+        "UV_LINK_MODE": "copy"
+    },
+    "forwardPorts": [
+        8000
+    ],
+    "portsAttributes": {
+        "8000": {
+            "label": "FastAPI",
+            "onAutoForward": "notify"
         }
-      }
+    },
+    "initializeCommand": [
+        "python3",
+        "${localWorkspaceFolder}/scripts/bootstrap_env.py"
+    ],
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
+    "waitFor": "postCreateCommand",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.debugpy",
+                "charliermarsh.ruff",
+                "redhat.vscode-yaml",
+                "tamasfe.even-better-toml",
+                "EditorConfig.EditorConfig",
+                "nefrob.vscode-just-syntax"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+                "python.testing.pytestEnabled": true,
+                "python.testing.unittestEnabled": false,
+                "python.testing.cwd": "${workspaceFolder}/backend",
+                "python.analysis.typeCheckingMode": "standard",
+                "python.analysis.diagnosticSeverityOverrides": {
+                    "reportDeprecated": "error"
+                },
+                "ruff.path": [
+                    "${workspaceFolder}/backend/.venv/bin/ruff"
+                ],
+                "ruff.configurationPreference": "filesystemFirst",
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "terminal.integrated.cwd": "${workspaceFolder}/backend",
+                "[python]": {
+                    "editor.defaultFormatter": "charliermarsh.ruff",
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+                        "source.fixAll.ruff": "always",
+                        "source.organizeImports.ruff": "always"
+                    }
+                }
+            }
+        }
     }
-  }
 }

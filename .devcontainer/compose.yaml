@@ -14,12 +14,9 @@ services:
 
   postgres:
     image: postgres:18
-    # backend/.env does not exist yet on a fresh clone (post-create makes it from
-    # the example), so the example provides the credentials and .env overrides them.
     env_file:
       - ../backend/.env.example
-      - path: ../backend/.env
-        required: false
+      - ../backend/.env
     volumes:
       - postgres-data:/var/lib/postgresql
       - ../docker/postgres/initdb:/docker-entrypoint-initdb.d:ro

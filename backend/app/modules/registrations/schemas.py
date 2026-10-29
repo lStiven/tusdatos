@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.modules.registrations.models import RegistrationStatus
+from app.modules.users.schemas import UserSummary as Attendee
 
 
 class RegistrationRead(BaseModel):
@@ -27,12 +28,6 @@ class RegistrationRead(BaseModel):
     cancelled_at: datetime | None = Field(
         description="Latest cancellation", examples=[None]
     )
-
-
-class Attendee(BaseModel):
-    id: int = Field(description="User id", examples=[7])
-    email: str = Field(description="Login email", examples=["ana@example.com"])
-    full_name: str = Field(description="Display name", examples=["Ana Pérez"])
 
 
 class EventRegistrationRead(RegistrationRead):

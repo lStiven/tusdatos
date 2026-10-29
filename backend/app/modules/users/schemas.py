@@ -20,3 +20,9 @@ class UserRead(BaseModel):
     roles: list[RoleCode] = Field(
         description="Roles granted to the user", examples=[["ATTENDEE"]]
     )
+
+
+class UserSummary(BaseModel):
+    id: int = Field(description="User id", examples=[7])
+    email: str = Field(description="Login email", examples=["ana@example.com"])
+    full_name: str = Field(description="Display name", examples=["Ana Pérez"])

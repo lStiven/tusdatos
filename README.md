@@ -18,7 +18,6 @@ Cada tipo de documentación responde a una pregunta distinta y vive en un solo l
 | ¿Cómo llamo a un endpoint, qué reglas aplica y qué errores devuelve? | OpenAPI de la API en marcha: [`/docs`](http://localhost:8000/docs) (Swagger) o [`/redoc`](http://localhost:8000/redoc). Se genera desde el código |
 | ¿Cómo funcionan la autenticación, los errores y la paginación? | Portada de `/docs` |
 | ¿Por qué está diseñado así? | `docs/`, abajo |
-| ¿Qué está hecho y qué sigue? | [docs/PROGRESO.md](docs/PROGRESO.md) |
 
 1. [Problema, solución y alcance del MVP](docs/01-problema-solucion-y-alcance.md): contexto, actores, requisitos, flujos, reglas y criterios de aceptación.
 2. [Arquitectura técnica, Dev Containers y despliegue](docs/02-arquitectura-y-contenedores.md): separación de entornos, contenedores, base de datos, seguridad y operaciones.
@@ -49,9 +48,10 @@ Cada tipo de documentación responde a una pregunta distinta y vive en un solo l
 .
 ├── backend/          # API: código, tests, migraciones, Dockerfile → backend/README.md
 ├── frontend/         # (pendiente)
-├── docs/             # Diseño y decisiones (01–04) y estado del trabajo (PROGRESO)
+├── docs/             # Diseño y decisiones (01–04)
 ├── compose.yaml      # Stack local: PostgreSQL + migraciones + API
 ├── docker/postgres/  # Script que crea la BD de tests al iniciar PostgreSQL
+├── scripts/          # bootstrap_env.py: crea backend/.env con un JWT_SECRET_KEY generado
 └── .devcontainer/    # Entorno de desarrollo (VS Code Dev Containers), con su propio compose
 ```
 
@@ -60,13 +60,14 @@ Cada tipo de documentación responde a una pregunta distinta y vive en un solo l
 Con Docker basta. Desde la raíz del repositorio:
 
 ```bash
-cp -n backend/.env.example backend/.env   # y pon un JWT_SECRET_KEY de 32+ caracteres
-docker compose up --build -d              # API en http://localhost:8000/docs
+python3 scripts/bootstrap_env.py   # crea backend/.env con un JWT_SECRET_KEY generado
+docker compose up --build -d       # API en http://localhost:8000/docs
 ```
 
 Los pasos completos están en [backend/README.md](backend/README.md):
 - crear el primer administrador;
 - recorrer un flujo de prueba;
+- o, si lo prefieres, cargar [datos de demo](backend/README.md#datos-de-demo-opcional) que cubren cada regla y caso borde, con una guía de qué probar;
 - ejecutar los tests con su reporte de cobertura;
 - desarrollar en el Dev Container.
 
@@ -82,4 +83,4 @@ Implementado:
 - charlas: salas y ponentes sin solapes, interés y métricas por charla;
 - health check.
 
-El stack local se levanta con Docker Compose. El despliegue a producción queda fuera del alcance actual. El detalle y el siguiente paso están en [docs/PROGRESO.md](docs/PROGRESO.md).
+El stack local se levanta con Docker Compose. El despliegue a producción queda fuera del alcance actual.

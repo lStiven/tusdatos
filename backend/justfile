@@ -38,6 +38,10 @@ migration-status:
 create-admin email full_name:
     uv run python -m app.modules.auth.cli create-admin --email "{{ email }}" --full-name "{{ full_name }}"
 
+# Poblar la BD con datos de demo (opcional; no hace nada si ya existen)
+seed:
+    uv run python -m app.modules.demo.cli seed
+
 # Formatear código y organizar imports
 format:
     uv run ruff check --fix .

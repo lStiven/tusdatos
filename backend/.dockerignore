@@ -1,0 +1,16 @@
+# Local environment: never inside an image (.venv would replace the image's own)
+.venv/
+.env
+.env.*
+!.env.example
+
+# Caches and reports
+**/__pycache__/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+Dockerfile
+.dockerignore

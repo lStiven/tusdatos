@@ -1,26 +1,22 @@
-name: mis-eventos
+# Local stack built from this repository's images: PostgreSQL, migrations and API.
+# Development happens in the Dev Container (.devcontainer/compose.yaml), not here.
+name: mis-eventos-local
+
+x-backend: &backend
+  build:
+    context: backend
+    target: runtime
+  env_file: backend/.env
+  environment:
+    POSTGRES_HOST: postgres
+  depends_on:
+    postgres:
+      condition: service_healthy
 
 services:
-  api:
-    build:
-      context: .devcontainer
-      dockerfile: Dockerfile
-    command: sleep infinity
-    env_file:
-      - .env
-    volumes:
-      - .:/workspaces/tusdatos:cached
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   postgres:
     image: postgres:18
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-mis_eventos}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mis_eventos}
-      POSTGRES_DB: ${POSTGRES_DB:-mis_eventos}
-      POSTGRES_TEST_DB: ${POSTGRES_TEST_DB:-mis_eventos_test}
+    env_file: backend/.env
     volumes:
       - postgres-data:/var/lib/postgresql
       - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
@@ -31,6 +27,27 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  # Runs once before the API: a single migration step, never one per API replica.
+  migrate:
+    <<: *backend
+    command: ["alembic", "upgrade", "head"]
+
+  api:
+    <<: *backend
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${API_PORT:-8000}:8000"
+
+  # Only on demand: docker compose run --rm --build tests
+  tests:
+    <<: *backend
+    build:
+      context: backend
+      target: test
+    profiles: [test]
 
 volumes:
   postgres-data:

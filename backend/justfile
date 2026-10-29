@@ -56,6 +56,10 @@ types:
 test:
     uv run pytest || [ $? -eq 5 ]
 
+# Pruebas con reporte de cobertura: resumen en consola y detalle en htmlcov/index.html (falla bajo el 90 %)
+coverage:
+    uv run pytest --cov --cov-report=term-missing:skip-covered --cov-report=html
+
 # Comprobar archivo de dependencias
 lock:
     uv lock --check
@@ -64,4 +68,4 @@ lock:
 check: lint types lock
 
 # Preparar código antes de un commit
-prepare: format check test
+prepare: format check coverage

@@ -14,6 +14,7 @@ Cada tipo de documentación responde a una pregunta distinta y vive en un solo l
 
 | Pregunta | Dónde |
 |---|---|
+| ¿Cómo configuro, ejecuto y pruebo el backend? | [backend/README.md](backend/README.md) |
 | ¿Cómo llamo a un endpoint, qué reglas aplica y qué errores devuelve? | OpenAPI de la API en marcha: [`/docs`](http://localhost:8000/docs) (Swagger) o [`/redoc`](http://localhost:8000/redoc). Se genera desde el código |
 | ¿Cómo funcionan la autenticación, los errores y la paginación? | Portada de `/docs` |
 | ¿Por qué está diseñado así? | `docs/`, abajo |
@@ -29,6 +30,7 @@ Cada tipo de documentación responde a una pregunta distinta y vive en un solo l
 - **Backend:** Python 3.14, FastAPI, SQLModel/SQLAlchemy, PostgreSQL.
 - **Gestión:** uv, Alembic, pytest, Swagger/OpenAPI.
 - **Desarrollo reproducible:** Dev Containers + Docker Compose.
+- **Ejecución local:** imagen Docker de la API + Docker Compose.
 - **Arquitectura de aplicación:** monolito modular, API REST.
 
 ## Principios de diseño
@@ -41,39 +43,43 @@ Cada tipo de documentación responde a una pregunta distinta y vive en un solo l
 - Se permite indicar interés por charlas simultáneas, porque este registro tiene finalidad estadística.
 - El mismo sistema debe ejecutarse en desarrollo, pruebas y producción mediante configuración externa; **Dev Container no es un mecanismo de despliegue**.
 
-## Entorno de desarrollo
+## Estructura del repositorio
 
-Requisitos: Docker y VS Code con la extensión **Dev Containers**.
-
-1. Clonar el repositorio y abrirlo en VS Code.
-2. Ejecutar **Dev Containers: Reopen in Container**.
-3. Al crearse el contenedor, [`.devcontainer/post-create.sh`](.devcontainer/post-create.sh) instala las dependencias con `uv sync --locked --all-groups`, crea `.env` desde `.env.example` y, cuando existan, instala los hooks de pre-commit y aplica las migraciones.
-
-El contenedor incluye Python 3.14, uv y just. Ejecuta `just` para ver los comandos disponibles.
-
-### Primera petición en 5 pasos
-
-```bash
-just migrate                                        # 1. esquema al día (el post-create ya lo hace)
-just create-admin admin@example.com "Admin"         # 2. primer administrador; pide la contraseña
-just dev                                            # 3. API en http://localhost:8000
+```text
+.
+├── backend/          # API: código, tests, migraciones, Dockerfile → backend/README.md
+├── frontend/         # (pendiente)
+├── docs/             # Diseño y decisiones (01–04) y estado del trabajo (PROGRESO)
+├── compose.yaml      # Stack local: PostgreSQL + migraciones + API
+├── docker/postgres/  # Script que crea la BD de tests al iniciar PostgreSQL
+└── .devcontainer/    # Entorno de desarrollo (VS Code Dev Containers), con su propio compose
 ```
 
-4. Abrir [`http://localhost:8000/docs`](http://localhost:8000/docs), pulsar **Authorize** y entrar con el email como `username`.
-5. Probar `GET /api/v1/users/me`: debe devolver los roles `ATTENDEE` y `ADMIN`.
+## Levantar en local
 
-Las cuentas creadas con `POST /api/v1/auth/register` solo reciben `ATTENDEE`; `just create-admin` es la única forma de crear un administrador sin otro administrador.
+Con Docker basta. Desde la raíz del repositorio:
 
-### Comandos habituales
+```bash
+cp -n backend/.env.example backend/.env   # y pon un JWT_SECRET_KEY de 32+ caracteres
+docker compose up --build -d              # API en http://localhost:8000/docs
+```
 
-| Comando | Qué hace |
-|---|---|
-| `just test` | Tests unitarios, de integración y de concurrencia (los dos últimos usan la BD `POSTGRES_TEST_DB`, que se recrea en cada ejecución) |
-| `just prepare` | Formato + lint + tipos + tests; obligatorio antes de dar una tarea por terminada |
-| `just migration "mensaje"` | Genera una migración desde los modelos; revisarla a mano (ver docs/04 §10) |
+Los pasos completos están en [backend/README.md](backend/README.md):
+- crear el primer administrador;
+- recorrer un flujo de prueba;
+- ejecutar los tests con su reporte de cobertura;
+- desarrollar en el Dev Container.
 
 ## Estado actual
 
-Implementados: esquema completo de base de datos con migraciones, autenticación (registro, login JWT), usuarios y roles, sedes y salas, ponentes, eventos, inscripciones con lista de espera, charlas (salas y ponentes sin solapamientos, interés y métricas por charla), y health check. El detalle y el siguiente paso están en [docs/PROGRESO.md](docs/PROGRESO.md).
+Implementado:
+- esquema de base de datos completo, con sus migraciones;
+- autenticación: registro y login con JWT;
+- usuarios y roles;
+- sedes, salas y ponentes;
+- eventos;
+- inscripciones con lista de espera;
+- charlas: salas y ponentes sin solapes, interés y métricas por charla;
+- health check.
 
-Los artefactos de producción que describe docs/02 (imagen final, compose de producción, despliegue) aún no existen: hoy solo hay entorno de desarrollo.
+El stack local se levanta con Docker Compose. El despliegue a producción queda fuera del alcance actual. El detalle y el siguiente paso están en [docs/PROGRESO.md](docs/PROGRESO.md).

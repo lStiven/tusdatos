@@ -1,8 +1,8 @@
 # 02 · Arquitectura técnica, Dev Containers y despliegue
 
 **Producto:** Mis Eventos  
-**Estado:** propuesta de arquitectura para el MVP  
-**Fecha:** 2026-10-27
+**Estado:** desarrollo (Dev Container) y stack local (Compose) implementados; producción propuesta, fuera del alcance actual  
+**Fecha:** 2026-10-27 · actualizado 2026-10-29
 
 ## 1. Decisión principal
 
@@ -14,12 +14,11 @@ Usaremos **un monolito modular en FastAPI**, con PostgreSQL como fuente de verda
 
 | Componente | Responsabilidad | Dónde se usa |
 |---|---|---|
-| `.devcontainer/devcontainer.json` | Configura editor, extensiones, usuario y servicio donde se desarrolla | Desarrollo |
-| `Dockerfile` | Define etapas de build: desarrollo y runtime mínimo | Desarrollo / CI / Producción |
-| `compose.yaml` | Define el servicio API y opciones compartidas, sin dependencias exclusivas de desarrollo | Base para entornos |
-| `compose.dev.yaml` | Añade PostgreSQL local, montajes de código, recarga y puertos de desarrollo | Desarrollo |
-| `compose.prod.yaml` | Configura imagen publicada, restart, red y opciones de operación | Servidor único / producción pequeña |
-| PostgreSQL local en Compose | Base efímera/persistente por volumen para cada desarrollador | Desarrollo |
+| `.devcontainer/devcontainer.json` + `.devcontainer/compose.yaml` | Configuran editor, extensiones y el contenedor de trabajo con el código montado, más su PostgreSQL | Desarrollo |
+| `backend/Dockerfile` | Etapas `runtime` (imagen de la API sin dependencias de desarrollo, usuario no root, healthcheck) y `test` (suite con cobertura) | Stack local / CI / Producción |
+| `compose.yaml` (raíz) | Stack local construido desde el repositorio: PostgreSQL, migraciones una vez y API | Pruebas reales en local |
+| `compose.prod.yaml` | Imagen publicada, restart, red y opciones de operación (propuesta, no existe) | Servidor único / producción pequeña |
+| PostgreSQL local en Compose | Base persistente por volumen; el Dev Container y el stack local tienen cada uno el suyo | Desarrollo / stack local |
 | PostgreSQL gestionado | Datos reales, respaldos y recuperación administrados por proveedor | Producción recomendada |
 | Registro de contenedores (ej. GHCR) | Almacena la imagen versionada construida en CI | CI / Producción |
 | CI (ej. GitHub Actions) | Tests, análisis, build, escaneo y publicación de imágenes | Integración |
@@ -36,21 +35,37 @@ VS Code / editor compatible
 .devcontainer/devcontainer.json
        │
        ▼
-Docker Compose (compose.yaml + compose.dev.yaml)
-       ├── api-dev: Python 3.14 + uv + FastAPI + pytest + Alembic
-       │            código fuente montado desde el repositorio
-       └── postgres-dev: PostgreSQL, healthcheck, volumen local
+Docker Compose (.devcontainer/compose.yaml, proyecto `mis-eventos`)
+       ├── api: Python 3.14 + uv + just + pytest + Alembic
+       │        código fuente montado desde el repositorio
+       └── postgres: PostgreSQL 18, healthcheck, volumen local
                      │
-                     └── Red interna de Compose (api-dev -> postgres-dev:5432)
+                     └── Red interna de Compose (api -> postgres:5432)
 ```
 
-- Solo se abre el servicio `api-dev` en el editor; PostgreSQL corre como servicio auxiliar.
+- Solo se abre el servicio `api` en el editor; PostgreSQL corre como servicio auxiliar.
+- El contenedor no recibe `env_file`: la app lee `backend/.env`, que `post-create.sh` crea después de que el compose ya arrancó. PostgreSQL toma las credenciales de `backend/.env.example`, y de `backend/.env` si existe, para que un clon nuevo arranque sin pasos previos.
 - La base de datos tiene un volumen **de desarrollo**, nunca compartido con producción.
 - El puerto PostgreSQL no necesita exponerse al host salvo que se requiera un cliente externo.
 - La API puede publicar `localhost:8000` para Swagger, o usar reenvío de puertos del editor.
 - `depends_on: condition: service_healthy` evita empezar la app antes de que PostgreSQL esté listo; la app también debe manejar reconexión ante fallos posteriores.
 - `uv.lock` se versiona y se usa para instalaciones reproducibles.
 - Cambios de código con volumen y `--reload` **solo en desarrollo**.
+
+### Stack local (pruebas reales)
+
+```text
+docker compose up --build   (compose.yaml de la raíz, proyecto `mis-eventos-local`)
+       ├── postgres: PostgreSQL 18 + BD de tests (docker/postgres/initdb)
+       ├── migrate: imagen runtime → alembic upgrade head, y termina
+       ├── api: imagen runtime → uvicorn sin --reload, :8000 publicado (API_PORT)
+       └── tests (perfil test, solo con `docker compose run --rm --build tests`)
+```
+
+- Usa la misma imagen que usaría un despliegue: sin código montado ni dependencias de desarrollo. Lo que funciona aquí no depende del Dev Container.
+- Las migraciones son un paso único (`migrate`) del que depende `api` con `service_completed_successfully`: si fallan, la API no arranca con un esquema a medias. Es la regla de §8 aplicada en pequeño, en lugar de migrar dentro del arranque de cada API.
+- Los nombres de proyecto distintos (`mis-eventos` y `mis-eventos-local`) evitan que levantar el stack recree los contenedores del Dev Container o reutilice su volumen.
+- Configuración en `backend/.env`, el mismo archivo que usa el Dev Container. Ver backend/README.md.
 
 ### Integración continua
 
@@ -96,7 +111,7 @@ PostgreSQL gestionado (red privada, backups, restauración, monitoreo)
 
 ### Opción A: Docker Compose en una máquina virtual
 
-Adecuado para un MVP con tráfico predecible, un servidor y presupuesto limitado. Se despliega **la imagen publicada** de la API con `compose.yaml + compose.prod.yaml`, y se conecta a una base gestionada si es posible.
+Adecuado para un MVP con tráfico predecible, un servidor y presupuesto limitado. Se despliega **la imagen publicada** de la API con un `compose.prod.yaml` propio (el `compose.yaml` de la raíz incluye PostgreSQL local y es solo para pruebas), y se conecta a una base gestionada si es posible.
 
 **Ventajas:** simple, control del servidor, costos previsibles.  
 **Limitaciones:** disponibilidad condicionada al servidor; despliegues, reinicios, certificados, vigilancia y escalado a cargo del equipo.
@@ -116,56 +131,44 @@ No recomendado para el MVP, salvo que la organización ya opere un clúster y re
 
 ## 5. Estrategia de archivos
 
+Backend y frontend viven en carpetas separadas; cada uno con su README, su configuración y su Dockerfile. Lo que orquesta ambos (compose, Dev Container, docs) queda en la raíz.
+
 ```text
 mis-eventos/
 ├── .devcontainer/
-│   └── devcontainer.json
-├── app/
-│   ├── main.py
-│   ├── core/
-│   └── modules/
-│       ├── auth/
-│       ├── users/
-│       ├── events/
-│       ├── venues/
-│       ├── sessions/
-│       ├── speakers/
-│       └── registrations/
-├── migrations/
-├── tests/
+│   ├── devcontainer.json
+│   ├── compose.yaml          # entorno de desarrollo: api (código montado) + postgres
+│   ├── Dockerfile            # imagen de trabajo: Python, uv, just, cliente psql
+│   └── post-create.sh
+├── backend/
+│   ├── app/                  # main.py, core/, modules/<dominio>/, shared/
+│   ├── migrations/
+│   ├── tests/                # unit, integration, concurrency
+│   ├── Dockerfile            # etapas runtime / test
+│   ├── .dockerignore
+│   ├── .env.example          # nombres de variables, sin secretos
+│   ├── alembic.ini · pyproject.toml · uv.lock · justfile
+│   └── README.md
+├── frontend/                 # pendiente
+├── docker/postgres/initdb/   # crea la BD de tests en ambos compose
 ├── docs/
-│   ├── 01-problema-solucion-y-alcance.md
-│   └── 02-arquitectura-y-contenedores.md
-├── Dockerfile                # etapas dev / runtime
-├── compose.yaml             # base neutral: servicio API
-├── compose.dev.yaml         # base local: DB y volúmenes
-├── compose.prod.yaml        # ajustes de producción
-├── .dockerignore
-├── .env.example              # nombres de variables, sin secretos
-├── alembic.ini
-├── pyproject.toml
-├── uv.lock
+├── compose.yaml              # stack local: postgres + migrate + api
 └── README.md
 ```
 
-**Nota:** esta estructura expresa una decisión de diseño; los archivos de infraestructura y aplicación se crearán en la siguiente fase.
-
-## 6. Ejemplos de composición (orientativos, no despliegue listo)
-
-Las siguientes instrucciones ilustran la separación entre entornos; **no son comandos para ejecutar todavía**, porque los archivos aún no existen.
+## 6. Ejemplos de composición
 
 ```bash
-# Desarrollo con Dev Container (composición descrita por devcontainer.json)
-docker compose -f compose.yaml -f compose.dev.yaml up -d
+# Stack local: construye la imagen, migra y levanta la API
+docker compose up --build -d
 
-# Producción de un solo servidor, usando imagen previamente publicada
-docker compose -f compose.yaml -f compose.prod.yaml up -d
+# Tests de la imagen contra el PostgreSQL del stack
+docker compose run --rm --build tests
 
-# Validar cómo se fusionan archivos antes del despliegue
-docker compose -f compose.yaml -f compose.prod.yaml config
+# Desarrollo: lo levanta VS Code desde devcontainer.json (no se lanza a mano)
 ```
 
-El `compose.prod.yaml` **no** debe incluir PostgreSQL local por accidente. Por eso proponemos que solo `compose.dev.yaml` cree el servicio de base de datos. La base `compose.yaml` referencia una URL de conexión externa configurable y no depende obligatoriamente de un servicio `db` definido en el mismo Compose.
+**Producción (propuesta, fuera del alcance actual):** un `compose.prod.yaml` con la imagen publicada, sin PostgreSQL local y con la URL de una base gestionada. Se escribirá cuando haya un destino de despliegue. Las secciones 3 («Producción recomendada»), 4, 8 y 9 describen lo que debería cumplir.
 
 ## 7. Contenedor de la aplicación: desarrollo vs. producción
 
@@ -217,8 +220,10 @@ Usar Docker multi-stage y `uv sync --locked` ayuda a generar builds consistentes
 | PostgreSQL como fuente de verdad | Aprobada | Integridad referencial, transacciones, bloqueos |
 | uv + `uv.lock` | Aprobada | Reproducibilidad de dependencias |
 | `.devcontainer` para desarrollo | Aprobada | Mismo entorno de trabajo |
-| Docker multi-stage | Propuesta | Separar herramientas de build de runtime |
-| Compose base + overlays dev/prod | Propuesta | Evitar mezclar desarrollo y ejecución pública |
+| Backend en `backend/`, frontend en `frontend/` | Aprobada | Cada parte con su configuración, README y Dockerfile; la raíz solo orquesta |
+| Dockerfile del backend con etapas `runtime` y `test` | Aprobada | La API corre sin dependencias de desarrollo y como usuario no root; los tests corren con solo Docker, sin Dev Container. El Dev Container mantiene su propia imagen de trabajo |
+| Dos compose separados: Dev Container y stack local, cada uno con su volumen | Aprobada | Sustituye la propuesta de base + overlays: con un único entorno de ejecución (local), los overlays añadían fusión de archivos sin beneficio. Se revisa al abordar producción |
+| Migraciones como servicio de una sola ejecución (`migrate`) | Aprobada | Un único paso que la API espera; un fallo de migración no deja la API sirviendo con el esquema viejo |
 | PostgreSQL gestionado para producción | Recomendado | Menor riesgo operacional |
 | Kubernetes | Fuera del MVP | Sobrecosto de complejidad |
 | Servicio de email / cola asíncrona | Futuro | MVP puede consultar estados por API |

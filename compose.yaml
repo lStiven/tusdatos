@@ -1,4 +1,4 @@
-# Local stack built from this repository's images: PostgreSQL, migrations and API.
+# Local stack built from this repository's images: PostgreSQL, migrations, API and web.
 # Development happens in the Dev Container (.devcontainer/compose.yaml), not here.
 name: mis-eventos-local
 
@@ -40,6 +40,19 @@ services:
         condition: service_completed_successfully
     ports:
       - "${API_PORT:-8000}:8000"
+
+  # The app on http://localhost:8080; nginx proxies /api to the `api` service.
+  web:
+    build:
+      context: frontend
+      target: runtime
+      args:
+        VITE_ENABLE_LAB: "true"
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:8080"
 
   # Only on demand: docker compose run --rm --build tests
   tests:

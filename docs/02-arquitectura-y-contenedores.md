@@ -36,7 +36,7 @@ VS Code / editor compatible
        │
        ▼
 Docker Compose (.devcontainer/compose.yaml, proyecto `mis-eventos`)
-       ├── api: Python 3.14 + uv + just + pytest + Alembic
+       ├── api: Python 3.14 + uv + just + pytest + Alembic, y Node 26 para el frontend
        │        código fuente montado desde el repositorio
        └── postgres: PostgreSQL 18, healthcheck, volumen local
                      │
@@ -51,6 +51,7 @@ Docker Compose (.devcontainer/compose.yaml, proyecto `mis-eventos`)
 - `depends_on: condition: service_healthy` evita empezar la app antes de que PostgreSQL esté listo; la app también debe manejar reconexión ante fallos posteriores.
 - `uv.lock` se versiona y se usa para instalaciones reproducibles.
 - Cambios de código con volumen y `--reload` **solo en desarrollo**.
+- El frontend corre en el mismo contenedor (`just dev` en `frontend/`, puerto 5173). Vite redirige `/api` y `/health` a la API, así que el navegador ve un solo origen y no hace falta CORS.
 
 ### Stack local (pruebas reales)
 
@@ -59,6 +60,8 @@ docker compose up --build   (compose.yaml de la raíz, proyecto `mis-eventos-loc
        ├── postgres: PostgreSQL 18 + BD de tests (docker/postgres/initdb)
        ├── migrate: imagen runtime → alembic upgrade head, y termina
        ├── api: imagen runtime → uvicorn sin --reload, :8000 publicado (API_PORT)
+       ├── web: imagen del frontend → nginx con el build estático, :8080 publicado (WEB_PORT);
+       │        redirige /api y /health a `api`
        └── tests (perfil test, solo con `docker compose run --rm --build tests`)
 ```
 
@@ -66,6 +69,7 @@ docker compose up --build   (compose.yaml de la raíz, proyecto `mis-eventos-loc
 - Las migraciones son un paso único (`migrate`) del que depende `api` con `service_completed_successfully`: si fallan, la API no arranca con un esquema a medias. Es la regla de §8 aplicada en pequeño, en lugar de migrar dentro del arranque de cada API.
 - Los nombres de proyecto distintos (`mis-eventos` y `mis-eventos-local`) evitan que levantar el stack recree los contenedores del Dev Container o reutilice su volumen.
 - Configuración en `backend/.env`, el mismo archivo que usa el Dev Container. Ver backend/README.md.
+- `web` sirve la app y la API desde el mismo origen: el navegador nunca llama a `:8000`, la API sigue con CORS cerrado y el token no cruza orígenes. nginx resuelve `api` en cada petición (DNS de Docker), así que arranca aunque la API se recree.
 
 ### Integración continua
 
@@ -149,17 +153,22 @@ mis-eventos/
 │   ├── .env.example          # nombres de variables, sin secretos
 │   ├── alembic.ini · pyproject.toml · uv.lock · justfile
 │   └── README.md
-├── frontend/                 # pendiente
+├── frontend/
+│   ├── src/                  # api/ (cliente generado desde OpenAPI), i18n/, features/
+│   ├── Dockerfile            # etapas build (node) / runtime (nginx sin root)
+│   ├── nginx.conf            # estáticos + proxy de /api; cabeceras de seguridad y caché
+│   ├── package.json · package-lock.json · justfile
+│   └── README.md
 ├── docker/postgres/initdb/   # crea la BD de tests en ambos compose
 ├── docs/
-├── compose.yaml              # stack local: postgres + migrate + api
+├── compose.yaml              # stack local: postgres + migrate + api + web
 └── README.md
 ```
 
 ## 6. Ejemplos de composición
 
 ```bash
-# Stack local: construye la imagen, migra y levanta la API
+# Stack local: construye las imágenes, migra y levanta la API y el frontend (:8080)
 docker compose up --build -d
 
 # Tests de la imagen contra el PostgreSQL del stack
@@ -223,6 +232,9 @@ Usar Docker multi-stage y `uv sync --locked` ayuda a generar builds consistentes
 | Backend en `backend/`, frontend en `frontend/` | Aprobada | Cada parte con su configuración, README y Dockerfile; la raíz solo orquesta |
 | Dockerfile del backend con etapas `runtime` y `test` | Aprobada | La API corre sin dependencias de desarrollo y como usuario no root; los tests corren con solo Docker, sin Dev Container. El Dev Container mantiene su propia imagen de trabajo |
 | Dos compose separados: Dev Container y stack local, cada uno con su volumen | Aprobada | Sustituye la propuesta de base + overlays: con un único entorno de ejecución (local), los overlays añadían fusión de archivos sin beneficio. Se revisa al abordar producción |
+| Frontend SPA (React + Vite + TypeScript) servido por nginx en el mismo origen que la API | Aprobada | Solo estáticos: no necesita servidor propio. El mismo origen evita CORS y preflights; el proxy vive en Vite (desarrollo) y en nginx (imagen) |
+| Cliente del frontend generado desde `/openapi.json` (openapi-typescript + openapi-fetch) | Aprobada | El contrato lo define el backend; si cambia, el frontend deja de compilar en vez de fallar en ejecución. TypeScript fijado en 5.9 porque el generador usa la API de compilador que TS 7 no expone |
+| Token del frontend en `sessionStorage` (por pestaña), no en `localStorage` ni en cookie | Aprobada | Permite una cuenta por pestaña para probar roles a la vez y se borra al cerrar la pestaña. Como cualquier almacenamiento accesible desde JS, un XSS podría leerlo: lo mitigan la CSP de nginx y React, que escapa por defecto. Una cookie `httpOnly` exigiría cambiar la API (hoy es Bearer) y añadir protección CSRF |
 | Migraciones como servicio de una sola ejecución (`migrate`) | Aprobada | Un único paso que la API espera; un fallo de migración no deja la API sirviendo con el esquema viejo |
 | PostgreSQL gestionado para producción | Recomendado | Menor riesgo operacional |
 | Kubernetes | Fuera del MVP | Sobrecosto de complejidad |

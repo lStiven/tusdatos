@@ -58,3 +58,33 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-push]
+
+      - id: prettier
+        name: prettier
+        entry: frontend/node_modules/.bin/prettier --write --ignore-unknown --ignore-path frontend/.prettierignore
+        language: system
+        files: ^frontend/
+        types: [text]
+
+      - id: oxlint
+        name: oxlint
+        entry: frontend/node_modules/.bin/oxlint --deny-warnings -c frontend/.oxlintrc.json
+        language: system
+        files: ^frontend/src/
+        types_or: [ts, tsx]
+
+      - id: tsc
+        name: tsc
+        entry: npm --prefix frontend run typecheck
+        language: system
+        files: ^frontend/
+        types_or: [ts, tsx, json]
+        pass_filenames: false
+
+      - id: vitest
+        name: vitest
+        entry: npm --prefix frontend test
+        language: system
+        pass_filenames: false
+        files: ^frontend/
+        stages: [pre-push]

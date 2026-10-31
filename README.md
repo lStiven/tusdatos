@@ -15,6 +15,7 @@ Cada tipo de documentación responde a una pregunta distinta y vive en un solo l
 | Pregunta | Dónde |
 |---|---|
 | ¿Cómo configuro, ejecuto y pruebo el backend? | [backend/README.md](backend/README.md) |
+| ¿Cómo ejecuto y desarrollo el frontend? | [frontend/README.md](frontend/README.md) |
 | ¿Cómo llamo a un endpoint, qué reglas aplica y qué errores devuelve? | OpenAPI de la API en marcha: [`/docs`](http://localhost:8000/docs) (Swagger) o [`/redoc`](http://localhost:8000/redoc). Se genera desde el código |
 | ¿Cómo funcionan la autenticación, los errores y la paginación? | Portada de `/docs` |
 | ¿Por qué está diseñado así? | `docs/`, abajo |
@@ -27,9 +28,10 @@ Cada tipo de documentación responde a una pregunta distinta y vive en un solo l
 ## Stack decidido
 
 - **Backend:** Python 3.14, FastAPI, SQLModel/SQLAlchemy, PostgreSQL.
+- **Frontend:** React, Vite y TypeScript, con un cliente generado desde el OpenAPI de la API; nginx lo sirve en la imagen.
 - **Gestión:** uv, Alembic, pytest, Swagger/OpenAPI.
 - **Desarrollo reproducible:** Dev Containers + Docker Compose.
-- **Ejecución local:** imagen Docker de la API + Docker Compose.
+- **Ejecución local:** imágenes Docker de la API y del frontend + Docker Compose.
 - **Arquitectura de aplicación:** monolito modular, API REST.
 
 ## Principios de diseño
@@ -47,9 +49,9 @@ Cada tipo de documentación responde a una pregunta distinta y vive en un solo l
 ```text
 .
 ├── backend/          # API: código, tests, migraciones, Dockerfile → backend/README.md
-├── frontend/         # (pendiente)
+├── frontend/         # App web (SPA): código, tests, Dockerfile → frontend/README.md
 ├── docs/             # Diseño y decisiones (01–04)
-├── compose.yaml      # Stack local: PostgreSQL + migraciones + API
+├── compose.yaml      # Stack local: PostgreSQL + migraciones + API + frontend
 ├── docker/postgres/  # Script que crea la BD de tests al iniciar PostgreSQL
 ├── scripts/          # bootstrap_env.py: crea backend/.env con un JWT_SECRET_KEY generado
 └── .devcontainer/    # Entorno de desarrollo (VS Code Dev Containers), con su propio compose
@@ -61,7 +63,7 @@ Con Docker basta. Desde la raíz del repositorio:
 
 ```bash
 python3 scripts/bootstrap_env.py   # crea backend/.env con un JWT_SECRET_KEY generado
-docker compose up --build -d       # API en http://localhost:8000/docs
+docker compose up --build -d       # app en http://localhost:8080 · API en http://localhost:8000/docs
 ```
 
 Los pasos completos están en [backend/README.md](backend/README.md):
@@ -82,5 +84,7 @@ Implementado:
 - inscripciones con lista de espera;
 - charlas: salas y ponentes sin solapes, interés y métricas por charla;
 - health check.
+
+En curso: el frontend. Hoy tiene su base (cliente de la API, imagen Docker y servicio en el stack local); las vistas por rol van a continuación.
 
 El stack local se levanta con Docker Compose. El despliegue a producción queda fuera del alcance actual.

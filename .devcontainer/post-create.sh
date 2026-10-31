@@ -19,4 +19,7 @@ uv run pre-commit install --install-hooks
 echo "==> Aplicando migraciones"
 uv run alembic upgrade head
 
+echo "==> Instalando dependencias del frontend"
+(cd ../frontend && npm ci)
+
 echo "==> Entorno listo."

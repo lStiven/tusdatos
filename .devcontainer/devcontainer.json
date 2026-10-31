@@ -10,6 +10,11 @@
     "remoteUser": "vscode",
     "updateRemoteUserUID": true,
     "workspaceFolder": "/workspaces/tusdatos",
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "26"
+        }
+    },
     "containerEnv": {
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONUNBUFFERED": "1",
@@ -17,11 +22,16 @@
         "UV_LINK_MODE": "copy"
     },
     "forwardPorts": [
-        8000
+        8000,
+        5173
     ],
     "portsAttributes": {
         "8000": {
             "label": "FastAPI",
+            "onAutoForward": "notify"
+        },
+        "5173": {
+            "label": "Frontend (Vite)",
             "onAutoForward": "notify"
         }
     },
@@ -41,7 +51,9 @@
                 "redhat.vscode-yaml",
                 "tamasfe.even-better-toml",
                 "EditorConfig.EditorConfig",
-                "nefrob.vscode-just-syntax"
+                "nefrob.vscode-just-syntax",
+                "esbenp.prettier-vscode",
+                "oxc.oxc-vscode"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
@@ -58,6 +70,10 @@
                 "ruff.configurationPreference": "filesystemFirst",
                 "terminal.integrated.defaultProfile.linux": "bash",
                 "terminal.integrated.cwd": "${workspaceFolder}/backend",
+                "[typescript][typescriptreact][javascript][json][jsonc][css][html]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode",
+                    "editor.formatOnSave": true
+                },
                 "[python]": {
                     "editor.defaultFormatter": "charliermarsh.ruff",
                     "editor.formatOnSave": true,

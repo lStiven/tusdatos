@@ -1,0 +1,45 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+# Mostrar comandos disponibles
+default:
+    @just --list
+
+# Instalar dependencias (respeta package-lock.json)
+install:
+    npm ci
+
+# Servidor de desarrollo en http://localhost:5173 (redirige /api a API_URL, por defecto localhost:8000)
+dev:
+    npm run dev
+
+# Regenerar los tipos del cliente desde el OpenAPI de la API en marcha
+api-types:
+    npm run api:types
+
+# Fallar si los tipos generados no coinciden con el OpenAPI actual de la API
+api-check:
+    npm run api:types
+    git diff --exit-code -- src/api/schema.d.ts
+
+# Build de producción en dist/
+build:
+    npm run build
+
+# Formatear código
+format:
+    npm run format
+
+# Validar formato, lint y tipos sin modificar archivos
+check:
+    npm run check
+
+# Ejecutar pruebas
+test:
+    npm test
+
+# Pruebas con cobertura: resumen en consola y detalle en coverage/index.html (falla bajo el 90 %)
+coverage:
+    npm run coverage
+
+# Preparar código antes de un commit
+prepare: format check coverage build

@@ -43,128 +43,14 @@ El sistema está diseñado bajo una filosofía estricta **API-first**. Toda la l
 
 El proyecto implementa un **monolito modular** desacoplado por capas. Esta decisión evita la complejidad operativa de microservicios prematuros mientras mantiene límites de dominio claros, alta cohesión y facilidad de prueba.
 
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#0d1117', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'secondaryColor': '#161b22', 'tertiaryColor': '#21262d'}}}%%
-flowchart TB
-    subgraph Clients["Capa de Clientes (Consumidores)"]
-        direction LR
-        Swagger(["Swagger UI / ReDoc"])
-        HTTP(["Clientes HTTP / Testing"])
-        WebUI(["Frontend Web (Rama demo-ui)"])
-    end
-
-    subgraph Backend["Backend Core · FastAPI (Monolito Modular)"]
-        direction TB
-
-        subgraph APILayer["Capa de Entrada y Seguridad"]
-            Router["Enrutadores REST & Esquemas OpenAPI"]
-            Auth["Middleware JWT & Control de Roles (RBAC)"]
-        end
-
-        subgraph DomainLayer["Módulos de Dominio (Reglas de Negocio)"]
-            direction LR
-            ModEvents["Gestión de Eventos<br/>Sedes y Salas"]
-            ModTalks["Agenda y Charlas<br/>Validador de Colisiones"]
-            ModReg["Motor de Inscripciones<br/>Control de Cupos y Waitlist"]
-            ModMetrics["Métricas de Interés<br/>y Telemetría"]
-        end
-
-        subgraph DataLayer["Capa de Acceso a Datos e Infraestructura"]
-            UoW["Transacciones & Control de Concurrencia"]
-            ORM["Repositorios · SQLModel / SQLAlchemy"]
-        end
-    end
-
-    subgraph Storage["Almacenamiento Persistente"]
-        Postgres[("PostgreSQL 16<br/> Integridad Relacional & Locks")]
-        Alembic["Alembic<br/>Migraciones de Esquema"]
-    end
-
-    Clients ==> Router
-    Router --> Auth
-    Auth --> ModEvents & ModTalks & ModReg & ModMetrics
-    ModEvents & ModTalks & ModReg & ModMetrics --> UoW
-    UoW --> ORM
-    ORM ==> Postgres
-    Alembic -.->|Versionado DDL| Postgres
-
-    classDef client fill:#1f2937,stroke:#60a5fa,stroke-width:2px,color:#f9fafb;
-    classDef api fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef domain fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#ecfdf5;
-    classDef data fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#eef2ff;
-    classDef db fill:#7c2d12,stroke:#fb923c,stroke-width:2px,color:#fff7ed;
-
-    class Swagger,HTTP,WebUI client;
-    class Router,Auth api;
-    class ModEvents,ModTalks,ModReg,ModMetrics domain;
-    class UoW,ORM data;
-    class Postgres,Alembic db;
-```
+![Arquitectura: los clientes llaman por HTTP a la API FastAPI, que cruza routers, autenticación JWT/RBAC, módulos de dominio y repositorios hasta PostgreSQL; Alembic aplica el esquema antes de arrancar](docs/assets/architecture.svg)
 
 ### Motor de Concurrencia y Lista de Espera
 
 Uno de los mayores retos técnicos es evitar que múltiples peticiones simultáneas sobre el último cupo disponible generen sobrecupo, además de asegurar que las cancelaciones promuevan automáticamente al siguiente usuario en espera respetando estrictamente el orden de llegada (FIFO).
 
-```mermaid
-%%{init: {
-  'theme': 'dark',
-  'themeVariables': {
-    'actorBkg': '#1f6feb',
-    'actorTextColor': '#ffffff',
-    'actorBorder': '#58a6ff',
-    'actorLineColor': '#8b949e',
-    'signalColor': '#58a6ff',
-    'signalTextColor': '#f0f6fc',
-    'labelBoxBkgColor': '#21262d',
-    'labelBoxBorderColor': '#30363d',
-    'labelTextColor': '#f0f6fc',
-    'loopTextColor': '#f0f6fc',
-    'noteBkgColor': '#3b2300',
-    'noteTextColor': '#f0f6fc',
-    'noteBorderColor': '#d29922'
-  }
-}}%%
-sequenceDiagram
-    autonumber
-    actor User as Asistente
-    participant API as FastAPI (Endpoints)
-    participant Svc as Servicio de Inscripción
-    participant DB as PostgreSQL (ACID)
+![Flujo de inscripción y cancelación: ambas rutas bloquean la fila del evento con FOR UPDATE, deciden entre cupo confirmado o lista de espera FIFO y responden solo tras el COMMIT](docs/assets/registration-flow.svg)
 
-    rect rgb(13, 27, 42)
-    note right of User: Escenario A: Solicitud de Inscripción Concurrente
-    User->>API: POST /events/{id}/register
-    API->>Svc: Procesar solicitud
-    Svc->>DB: BEGIN + Bloqueo de control de capacidad
-    DB-->>Svc: Estado actual de cupos confirmados
-
-    alt Hay cupos disponibles (Confirmados menor a Capacidad)
-        Svc->>DB: INSERT Inscripción (CONFIRMADA)
-        DB-->>Svc: Commit exitoso
-        Svc-->>API: 201 Created (Cupo Asegurado)
-    else Aforo al 100% (Capacidad Agotada)
-        Svc->>DB: INSERT en Lista de Espera (Orden FIFO)
-        DB-->>Svc: Commit exitoso
-        Svc-->>API: 202 Accepted (En Lista de Espera)
-    end
-    API-->>User: Respuesta con estado de registro
-    end
-
-    rect rgb(10, 38, 28)
-    note right of User: Escenario B: Liberación de Cupo y Promoción Automática
-    User->>API: DELETE /events/{id}/register (Cancelar)
-    API->>Svc: Ejecutar baja e inspeccionar cola
-    Svc->>DB: BEGIN Transaction
-    Svc->>DB: Marcar inscripción actual como CANCELADA
-    Svc->>DB: Consultar 1er registro en Lista de Espera (FIFO)
-    opt Existe candidato en espera
-        Svc->>DB: Promover estado: EN_ESPERA a CONFIRMADA
-    end
-    Svc->>DB: COMMIT Transaction
-    Svc-->>API: 200 OK (Reasignación atómica completada)
-    API-->>User: Confirmación de cancelación
-    end
-```
 ---
 
 ## Capacidades y Reglas de Negocio

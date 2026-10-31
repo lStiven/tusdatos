@@ -1,0 +1,169 @@
+# Arquitectura de Mis Eventos: una petición, de los clientes a PostgreSQL.
+# Fuente de docs/assets/architecture.svg; se regenera con
+#
+#   d2 docs/assets/architecture.d2 docs/assets/architecture.svg
+#
+# El CLI mete los íconos dentro del SVG; el export de play.d2lang.com los deja
+# como URLs, y GitHub no carga nada externo dentro de un SVG.
+#
+# Es una grilla en S (cuatro celdas por fila, la segunda se recorre de derecha
+# a izquierda): así cada capa queda al lado de la siguiente y las flechas son
+# rectas. No se usan contenedores anidados con `direction`: ELK ignora la
+# dirección de los contenedores y las flechas que cruzan grillas anidadas
+# salen en diagonal. Las fronteras (servicios de Docker Compose) van por color
+# y en la celda de leyenda.
+vars: {
+  d2-config: {
+    theme-id: 200
+    layout-engine: elk
+    pad: 32
+    theme-overrides: {
+      N1: "#E2E8F0"
+      N2: "#CBD5E1"
+      N7: "#0B0A1A"
+    }
+  }
+}
+
+style.fill: "#0B0A1A"
+grid-rows: 2
+grid-columns: 4
+horizontal-gap: 170
+vertical-gap: 110
+
+classes: {
+  step: {
+    width: 270
+    height: 175
+    icon.near: bottom-center
+    label.near: top-center
+    style: {
+      fill: "#14112B"
+      stroke-width: 3
+      border-radius: 14
+      font-color: "#F8FAFC"
+      font-size: 19
+    }
+  }
+  group: {
+    style: {
+      fill: "#14112B"
+      stroke-width: 3
+      border-radius: 14
+      font-color: "#F8FAFC"
+      font-size: 19
+      bold: true
+    }
+  }
+  inner: {
+    width: 230
+    height: 44
+    style: {
+      fill: "#0F172A"
+      stroke: "#475569"
+      stroke-width: 2
+      border-radius: 10
+      font-color: "#E2E8F0"
+      font-size: 17
+    }
+  }
+  request: {
+    style: {
+      stroke: "#38BDF8"
+      stroke-width: 3
+      animated: true
+      font-color: "#BAE6FD"
+      font-size: 17
+    }
+  }
+  sql: {
+    style: {
+      stroke: "#FB923C"
+      stroke-width: 3
+      animated: true
+      font-color: "#FED7AA"
+      font-size: 17
+    }
+  }
+  schema: {
+    style: {
+      stroke: "#FB923C"
+      stroke-width: 2
+      stroke-dash: 5
+      font-color: "#FED7AA"
+      font-size: 17
+    }
+  }
+}
+
+heading: "Mis Eventos · monolito modular API-first" {
+  shape: text
+  near: top-center
+  style: {font-size: 30; bold: true; font-color: "#F8FAFC"}
+}
+
+# Fila 1, de izquierda a derecha: de los clientes a las reglas de negocio.
+clients: "1 · Clientes HTTP" {
+  class: group
+  style.stroke: "#60A5FA"
+  grid-rows: 3
+  vertical-gap: 8
+  swagger: "Swagger UI / ReDoc" {class: inner}
+  http: "curl, Postman, pytest" {class: inner}
+  web: "Frontend (rama demo-ui)" {class: inner}
+}
+router: "2 · Routers /api/v1\nvalidan y documentan\nel contrato OpenAPI" {
+  class: step
+  style.stroke: "#38BDF8"
+  icon: https://cdn.simpleicons.org/fastapi/009688
+}
+auth: "3 · Auth JWT + RBAC\nBearer token, rol\ny dueño del evento" {
+  class: step
+  style.stroke: "#38BDF8"
+  icon: https://cdn.simpleicons.org/jsonwebtokens/F8FAFC
+}
+domain: "4 · Módulos de dominio" {
+  class: group
+  style.stroke: "#10B981"
+  grid-columns: 2
+  grid-gap: 10
+  events: "Eventos,\nsedes y salas" {class: inner; width: 210; height: 60; style.stroke: "#10B981"}
+  agenda: "Agenda sin solapes\nde sala ni ponente" {class: inner; width: 210; height: 60; style.stroke: "#10B981"}
+  registrations: "Cupos y lista\nde espera FIFO" {class: inner; width: 210; height: 60; style.stroke: "#10B981"}
+  interests: "Interés\nen charlas" {class: inner; width: 210; height: 60; style.stroke: "#10B981"}
+}
+
+# Fila 2, de derecha a izquierda: la grilla se llena por filas, así que el
+# orden de declaración es el inverso del recorrido.
+legend: "Docker Compose\napi :8000 → pasos 2 a 5\npostgres → paso 6" {
+  class: step
+  style.stroke: "#475569"
+  style.stroke-dash: 5
+  style.font-size: 17
+  icon: https://cdn.simpleicons.org/docker/2496ED
+}
+migrate: "Al arrancar · migrate\nalembic upgrade head,\nuna vez, antes de la API" {
+  class: step
+  style.stroke: "#FB923C"
+  style.stroke-dash: 5
+  icon: https://cdn.simpleicons.org/python/FFD43B
+}
+postgres: "6 · PostgreSQL 18\nFOR UPDATE · UNIQUE · EXCLUDE\nla única fuente de verdad" {
+  class: step
+  width: 300
+  style.stroke: "#FB923C"
+  icon: https://cdn.simpleicons.org/postgresql/4169E1
+}
+data: "5 · Repositorios\nSQLModel · SQLAlchemy\nuna transacción por operación" {
+  class: step
+  width: 300
+  style.stroke: "#818CF8"
+  icon: https://cdn.simpleicons.org/sqlalchemy/F8FAFC
+}
+
+clients -> router: "HTTP / JSON" {class: request}
+router -> auth: {class: request}
+auth -> domain: "usuario y rol" {class: request}
+domain -> data: {class: request}
+data -> postgres: "BEGIN … COMMIT" {class: sql}
+migrate -> postgres: "esquema" {class: schema}

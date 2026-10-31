@@ -102,125 +102,13 @@ docker compose exec api python -m app.modules.auth.cli create-admin \
 
 El sistema opera bajo un **monolito modular** en el backend consumido por una **SPA en React/TypeScript**. El acoplamiento de contratos se mantiene sincronizado generando el cliente HTTP del frontend directamente desde la especificación OpenAPI de FastAPI, mientras que **Nginx** actúa como servidor web y *reverse proxy* dentro de la red de contenedores.
 
-```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0d1117', 'primaryTextColor': '#f0f6fc', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'secondaryColor': '#161b22', 'tertiaryColor': '#21262d'}}}%%
-flowchart TB
-    subgraph Browser["Entorno del Usuario (Navegador)"]
-        UI["React 18 + Vite + TypeScript<br/>Vistas por Rol & Laboratorio de Concurrencia"]
-        SDK["Cliente HTTP Tipado<br/>Autogenerado desde OpenAPI"]
-        UI --> SDK
-    end
-
-    subgraph DockerNet["Red Interna de Docker Compose"]
-        Nginx["Nginx (Puerto 8080)<br/>Servidor Estático SPA + Reverse Proxy"]
-
-        subgraph Backend["Backend Core · FastAPI (Puerto 8000)"]
-            direction TB
-            Router["Enrutadores REST & Esquemas OpenAPI"]
-            Auth["Middleware JWT & Control RBAC"]
-
-            subgraph Domain["Módulos de Dominio (API-First)"]
-                direction LR
-                ModEvents["Eventos, Sedes<br/>y Salas"]
-                ModTalks["Charlas y Validador<br/>de Horarios"]
-                ModReg["Inscripciones y<br/>Waitlist FIFO"]
-                ModMetrics["Interés y<br/>Métricas"]
-            end
-
-            ORM["Transacciones ACID · SQLModel / SQLAlchemy"]
-        end
-
-        subgraph Storage["Persistencia"]
-            Postgres[("PostgreSQL<br/>Locks & Integridad")]
-            Alembic["Contenedor Migrate<br/>Alembic DDL"]
-        end
-    end
-
-    SDK ==>|HTTP / JSON| Nginx
-    Nginx ==>|Proxy Interno| Router
-    Router --> Auth
-    Auth --> ModEvents & ModTalks & ModReg & ModMetrics
-    ModEvents & ModTalks & ModReg & ModMetrics --> ORM
-    ORM ==> Postgres
-    Alembic -.->|Aplica esquema al iniciar| Postgres
-
-    classDef frontend fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#eef2ff;
-    classDef proxy fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#ecfdf5;
-    classDef api fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef domain fill:#1f2937,stroke:#60a5fa,stroke-width:2px,color:#f9fafb;
-    classDef db fill:#7c2d12,stroke:#fb923c,stroke-width:2px,color:#fff7ed;
-
-    class UI,SDK frontend;
-    class Nginx proxy;
-    class Router,Auth,ORM api;
-    class ModEvents,ModTalks,ModReg,ModMetrics domain;
-    class Postgres,Alembic db;
-```
+![Arquitectura: la SPA en React llama por HTTP a Nginx, que sirve los estáticos y hace proxy de /api a FastAPI; la petición cruza routers, autenticación JWT/RBAC, módulos de dominio y repositorios hasta PostgreSQL, y Alembic aplica el esquema antes de arrancar](docs/assets/architecture.svg)
 
 ### Flujo Transaccional: Control de Cupos y Lista de Espera
 
 La interfaz gráfica incluye un laboratorio que dispara peticiones concurrentes hacia la API para demostrar cómo el backend previene condiciones de carrera (*race conditions*) y gestiona la cola de espera:
 
-```mermaid
-%%{init: {
-  'theme': 'dark',
-  'themeVariables': {
-    'actorBkg': '#1f6feb',
-    'actorTextColor': '#ffffff',
-    'actorBorder': '#58a6ff',
-    'actorLineColor': '#8b949e',
-    'signalColor': '#58a6ff',
-    'signalTextColor': '#f0f6fc',
-    'labelBoxBkgColor': '#21262d',
-    'labelBoxBorderColor': '#30363d',
-    'labelTextColor': '#f0f6fc',
-    'loopTextColor': '#f0f6fc',
-    'noteBkgColor': '#3b2300',
-    'noteTextColor': '#f0f6fc',
-    'noteBorderColor': '#d29922'
-  }
-}}%%
-sequenceDiagram
-    autonumber
-    actor User as Cliente Web (SPA)
-    participant API as FastAPI (Endpoints)
-    participant Svc as Servicio de Dominio
-    participant DB as PostgreSQL (ACID)
-
-    rect rgb(13, 27, 42)
-    note right of User: Escenario A: Inscripción bajo Concurrencia
-    User->>API: POST /events/{id}/register
-    API->>Svc: Procesar solicitud
-    Svc->>DB: BEGIN + Bloqueo de control de capacidad
-    DB-->>Svc: Cupos confirmados actuales
-
-    alt Hay cupos disponibles (Confirmados menor a Capacidad)
-        Svc->>DB: INSERT Inscripción (CONFIRMADA)
-        DB-->>Svc: Commit exitoso
-        Svc-->>API: 201 Created (Cupo Reservado)
-    else Aforo al 100% (Capacidad Agotada)
-        Svc->>DB: INSERT en Lista de Espera (Orden FIFO)
-        DB-->>Svc: Commit exitoso
-        Svc-->>API: 202 Accepted (En Lista de Espera)
-    end
-    API-->>User: Actualiza estado en UI
-    end
-
-    rect rgb(10, 38, 28)
-    note right of User: Escenario B: Cancelación y Promoción Automática
-    User->>API: DELETE /events/{id}/register (Cancelar)
-    API->>Svc: Ejecutar baja e inspeccionar cola
-    Svc->>DB: BEGIN Transaction
-    Svc->>DB: Marcar inscripción como CANCELADA
-    Svc->>DB: Seleccionar 1er candidato en espera (FIFO)
-    opt Existe usuario en Lista de Espera
-        Svc->>DB: Promover estado: EN_ESPERA a CONFIRMADA
-    end
-    Svc->>DB: COMMIT Transaction
-    Svc-->>API: 200 OK (Promoción atómica completada)
-    API-->>User: Refleja cupo reasignado en UI
-    end
-```
+![Flujo de inscripción y cancelación: ambas rutas bloquean la fila del evento con FOR UPDATE, deciden entre cupo confirmado o lista de espera FIFO y responden solo tras el COMMIT](docs/assets/registration-flow.svg)
 
 ---
 

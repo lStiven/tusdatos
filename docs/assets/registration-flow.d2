@@ -1,0 +1,202 @@
+# Inscribirse y cancelar: las dos rutas que mueven el cupo de un evento.
+# Fuente de docs/assets/registration-flow.svg; se regenera con
+#
+#   d2 docs/assets/registration-flow.d2 docs/assets/registration-flow.svg
+#
+# Dos carriles en una grilla de dos columnas, uno por endpoint. Ambos empiezan
+# por el mismo candado (la fila del evento con FOR UPDATE) y solo responden
+# después del COMMIT. Colores de las flechas: azul = petición, verde = cupo
+# confirmado, fucsia = lista de espera, gris = camino sin cambios.
+vars: {
+  d2-config: {
+    theme-id: 200
+    layout-engine: elk
+    pad: 32
+    theme-overrides: {
+      N1: "#E2E8F0"
+      N2: "#CBD5E1"
+      N7: "#0B0A1A"
+    }
+  }
+}
+
+style.fill: "#0B0A1A"
+grid-columns: 2
+horizontal-gap: 80
+
+classes: {
+  lane: {
+    style: {
+      fill: "#14112B"
+      stroke-width: 3
+      border-radius: 14
+      font-color: "#F8FAFC"
+      font-size: 20
+      bold: true
+    }
+  }
+  step: {
+    style: {
+      fill: "#0F172A"
+      stroke: "#475569"
+      stroke-width: 2
+      border-radius: 10
+      font-color: "#E2E8F0"
+      font-size: 17
+    }
+  }
+  request: {
+    style: {
+      fill: "#0C1E2E"
+      stroke: "#38BDF8"
+      stroke-width: 2
+      border-radius: 10
+      font-color: "#E0F2FE"
+      font-size: 17
+    }
+  }
+  lock: {
+    style: {
+      fill: "#2A1E05"
+      stroke: "#FBBF24"
+      stroke-width: 3
+      border-radius: 10
+      font-color: "#FEF3C7"
+      font-size: 17
+    }
+  }
+  decision: {
+    shape: diamond
+    style: {
+      fill: "#1E1B3A"
+      stroke: "#A78BFA"
+      stroke-width: 2
+      font-color: "#EDE9FE"
+      font-size: 16
+    }
+  }
+  confirmed: {
+    style: {
+      fill: "#062A1F"
+      stroke: "#34D399"
+      stroke-width: 2
+      border-radius: 10
+      font-color: "#D1FAE5"
+      font-size: 17
+    }
+  }
+  waitlisted: {
+    style: {
+      fill: "#2A0F2E"
+      stroke: "#E879F9"
+      stroke-width: 2
+      border-radius: 10
+      font-color: "#FAE8FF"
+      font-size: 17
+    }
+  }
+  commit: {
+    style: {
+      fill: "#062A1F"
+      stroke: "#34D399"
+      stroke-width: 3
+      border-radius: 10
+      font-color: "#F8FAFC"
+      font-size: 17
+      bold: true
+    }
+  }
+  flow: {
+    style: {
+      stroke: "#38BDF8"
+      stroke-width: 3
+      animated: true
+      font-color: "#BAE6FD"
+      font-size: 16
+    }
+  }
+  seat: {
+    style: {
+      stroke: "#34D399"
+      stroke-width: 3
+      animated: true
+      font-color: "#A7F3D0"
+      font-size: 16
+    }
+  }
+  queue: {
+    style: {
+      stroke: "#E879F9"
+      stroke-width: 3
+      animated: true
+      font-color: "#F5D0FE"
+      font-size: 16
+    }
+  }
+  idle: {
+    style: {
+      stroke: "#94A3B8"
+      stroke-width: 2
+      stroke-dash: 4
+      font-color: "#CBD5E1"
+      font-size: 16
+    }
+  }
+}
+
+heading: "Cupos sin sobrecupo: un candado por evento" {
+  shape: text
+  near: top-center
+  style: {font-size: 30; bold: true; font-color: "#F8FAFC"}
+}
+
+register: "A · Inscribirse\nPOST /api/v1/events/{id}/registrations" {
+  class: lane
+  style.stroke: "#38BDF8"
+
+  req: "Muchos usuarios a la vez\npiden el último cupo" {
+    class: request
+    style.multiple: true
+  }
+  lock: "BEGIN · SELECT … FOR UPDATE\nla fila del evento es el candado:\nlas demás peticiones esperan turno" {class: lock}
+  active: "¿Ya inscrito\no en espera?" {class: decision}
+  retry: "200 OK\nla misma inscripción\n(reintento seguro)" {class: step}
+  seat: "¿Queda cupo tras\natender la cola?" {class: decision}
+  confirmed: "CONFIRMED\ncupo garantizado" {class: confirmed}
+  waitlisted: "WAITLISTED\nal final de la cola FIFO" {class: waitlisted}
+  commit: "COMMIT → 201 Created\nstatus + waitlist_position" {class: commit}
+
+  req -> lock: {class: flow}
+  lock -> active: {class: flow}
+  active -> retry: "sí" {class: idle}
+  active -> seat: "no" {class: flow}
+  seat -> confirmed: "sí" {class: seat}
+  seat -> waitlisted: "no" {class: queue}
+  confirmed -> commit: {class: seat}
+  waitlisted -> commit: {class: queue}
+}
+
+cancel: "B · Cancelar\nPOST /api/v1/events/{id}/registrations/me/cancel" {
+  class: lane
+  style.stroke: "#34D399"
+
+  req: "El usuario cancela\nsu inscripción" {class: request}
+  lock: "BEGIN · SELECT … FOR UPDATE\nel mismo candado que la inscripción" {class: lock}
+  mark: "CANCELLED\ny retira sus intereses en charlas" {class: step}
+  freed: "¿Liberó un\ncupo confirmado?" {class: decision}
+  promote: "El 1.º de la cola (FIFO)\nWAITLISTED → CONFIRMED" {class: confirmed}
+  commit: "COMMIT → 200 OK\nbaja y promoción, atómicas" {class: commit}
+
+  req -> lock: {class: flow}
+  lock -> mark: {class: flow}
+  mark -> freed: {class: flow}
+  freed -> promote: "sí, y hay cola" {class: seat}
+  freed -> commit: "no" {class: idle}
+  promote -> commit: {class: seat}
+}
+
+note: "Eventos distintos no se bloquean entre sí · ninguna respuesta sale antes del COMMIT\nsi el candado tarda más de 5 s: 503 + Retry-After, sin cambios, y reintentar es seguro" {
+  shape: text
+  near: bottom-center
+  style: {font-size: 17; italic: true; font-color: "#CBD5E1"}
+}

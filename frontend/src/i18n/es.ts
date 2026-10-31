@@ -463,6 +463,12 @@ export const es = {
     description: (roles: string) => `Esta sección requiere el rol ${roles}.`,
     back: 'Volver al inicio',
   },
+  crash: {
+    title: 'Algo salió mal en esta pantalla',
+    description:
+      'Fue un error de la aplicación, no de tus datos. Recarga la página; si se repite, avísanos.',
+    reload: 'Recargar',
+  },
   notFound: {
     title: 'Página no encontrada',
     description: 'La dirección no existe o ya no está disponible.',

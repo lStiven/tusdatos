@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, CalendarX2, Lock, ShieldX } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -205,10 +205,11 @@ function EventForm({ event }: { event?: Event }) {
   const venueLocked =
     sessions.data?.some((session) => session.status === 'SCHEDULED') ?? false
 
-  const { register, handleSubmit, setError, formState } = useForm<Values>({
-    resolver: zodResolver(schema),
-    defaultValues: toValues(event),
-  })
+  const { register, handleSubmit, setError, control, formState } =
+    useForm<Values>({
+      resolver: zodResolver(schema),
+      defaultValues: toValues(event),
+    })
   const errors = formState.errors
 
   const submit = handleSubmit((values) =>
@@ -304,22 +305,32 @@ function EventForm({ event }: { event?: Event }) {
             error={errors.registration_closes_at?.message}
             {...register('registration_closes_at')}
           />
-          <SelectField
-            label={es.eventForm.venue}
-            hint={
-              venueLocked ? es.eventForm.venueLocked : es.eventForm.venueHint
-            }
-            disabled={venueLocked}
-            error={errors.venue_id?.message}
-            {...register('venue_id')}
-          >
-            <option value="">{es.eventForm.noVenue}</option>
-            {venues.data?.map((venue) => (
-              <option key={venue.id} value={venue.id}>
-                {[venue.name, venue.city].filter(Boolean).join(' · ')}
-              </option>
-            ))}
-          </SelectField>
+          <Controller
+            control={control}
+            name="venue_id"
+            render={({ field }) => (
+              <SelectField
+                label={es.eventForm.venue}
+                hint={
+                  venueLocked
+                    ? es.eventForm.venueLocked
+                    : es.eventForm.venueHint
+                }
+                disabled={venueLocked}
+                error={errors.venue_id?.message}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                options={[
+                  { value: '', label: es.eventForm.noVenue },
+                  ...(venues.data ?? []).map((venue) => ({
+                    value: String(venue.id),
+                    label: [venue.name, venue.city].filter(Boolean).join(' · '),
+                  })),
+                ]}
+              />
+            )}
+          />
           <div className="flex justify-end gap-2 md:col-span-2">
             <Button type="submit" size="lg" disabled={save.isPending}>
               {save.isPending

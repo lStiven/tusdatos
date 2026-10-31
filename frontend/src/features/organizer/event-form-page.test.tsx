@@ -59,8 +59,10 @@ describe('NewEventPage', () => {
     await user.type(screen.getByLabelText(f.timezone), 'Europe/Madrid')
     await user.type(screen.getByLabelText(f.startsAt), '2027-07-01T09:00')
     await user.type(screen.getByLabelText(f.endsAt), '2027-07-01T18:00')
-    await screen.findByRole('option', { name: 'Ágora · Bogotá' })
-    await user.selectOptions(screen.getByLabelText(f.venue), '4')
+    await user.click(screen.getByLabelText(f.venue))
+    await user.click(
+      await screen.findByRole('option', { name: 'Ágora · Bogotá' }),
+    )
     await user.click(screen.getByRole('button', { name: f.create }))
 
     await waitFor(() =>

@@ -184,3 +184,11 @@
   --error-text: var(--danger);
   --error-border: color-mix(in oklch, var(--danger) 25%, transparent);
 }
+
+/* Native controls (date pickers, scrollbars) follow the app theme. */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}

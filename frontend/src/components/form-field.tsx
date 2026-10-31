@@ -3,6 +3,13 @@ import { Eye, EyeOff } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { es } from '@/i18n/es'
 import { cn } from '@/lib/utils'
@@ -129,29 +136,60 @@ export function TextareaField({
   )
 }
 
-/** Native `<select>`: accessible and keyboard-friendly on every device. */
+export interface SelectOption {
+  value: string
+  label: string
+}
+
+// Radix does not allow an empty value in an item: '' travels as this one.
+const NONE = '__none__'
+
+/** Select styled like the rest of the app (the native list ignores the theme). */
 export function SelectField({
   label,
   hint,
   error,
-  className,
-  ...select
-}: ComponentProps<'select'> & {
+  options,
+  value,
+  onChange,
+  onBlur,
+  disabled,
+}: {
   label: string
   hint?: string
   error?: string
+  options: SelectOption[]
+  value: string
+  onChange: (value: string) => void
+  onBlur?: () => void
+  disabled?: boolean
 }) {
   return (
     <Field label={label} hint={hint} error={error}>
       {(control) => (
-        <select
-          {...control}
-          className={cn(
-            'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive dark:bg-input/30',
-            className,
-          )}
-          {...select}
-        />
+        <Select
+          value={value || NONE}
+          onValueChange={(next) => onChange(next === NONE ? '' : next)}
+          disabled={disabled}
+        >
+          <SelectTrigger
+            {...control}
+            onBlur={onBlur}
+            className="h-10! w-full bg-background"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent position="popper">
+            {options.map((option) => (
+              <SelectItem
+                key={option.value || NONE}
+                value={option.value || NONE}
+              >
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
     </Field>
   )

@@ -234,12 +234,16 @@ describe('ManageEventPage', () => {
     )
     await user.type(d.getByLabelText(s.form.title), 'Keynote')
     await user.type(d.getByLabelText(s.form.capacity), '200')
-    await d.findByRole('option', {
+    // The list opens in a portal, outside the dialog.
+    await user.click(d.getByLabelText(s.form.room))
+    const room = await screen.findByRole('option', {
       name: s.form.roomOption('Main Auditorium', 150),
     })
     // Inactive rooms are not offered.
-    expect(d.queryByRole('option', { name: /Closed/ })).not.toBeInTheDocument()
-    await user.selectOptions(d.getByLabelText(s.form.room), '7')
+    expect(
+      screen.queryByRole('option', { name: /Closed/ }),
+    ).not.toBeInTheDocument()
+    await user.click(room)
     expect(d.getByText(s.form.capacityOverRoom(150))).toBeInTheDocument()
     await user.clear(d.getByLabelText(s.form.capacity))
     await user.type(d.getByLabelText(s.form.capacity), '100')

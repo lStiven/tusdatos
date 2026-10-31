@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { ApiError, errorMessage, fieldErrors } from '@/api/errors'
@@ -237,20 +237,28 @@ function SessionForm({
         error={errors.ends_at?.message}
         {...register('ends_at')}
       />
-      <SelectField
-        label={f.room}
-        hint={event.venue_id === null ? f.noVenue : f.roomHint}
-        disabled={event.venue_id === null}
-        error={errors.room_id?.message}
-        {...register('room_id')}
-      >
-        <option value="">{f.noRoom}</option>
-        {activeRooms.map((item) => (
-          <option key={item.id} value={item.id}>
-            {f.roomOption(item.name, item.capacity)}
-          </option>
-        ))}
-      </SelectField>
+      <Controller
+        control={control}
+        name="room_id"
+        render={({ field }) => (
+          <SelectField
+            label={f.room}
+            hint={event.venue_id === null ? f.noVenue : f.roomHint}
+            disabled={event.venue_id === null}
+            error={errors.room_id?.message}
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            options={[
+              { value: '', label: f.noRoom },
+              ...activeRooms.map((item) => ({
+                value: String(item.id),
+                label: f.roomOption(item.name, item.capacity),
+              })),
+            ]}
+          />
+        )}
+      />
       <FormField
         label={f.capacity}
         type="number"

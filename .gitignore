@@ -38,3 +38,12 @@ Thumbs.db
 
 # Logs
 *.log
+
+# frontend
+node_modules
+dist
+coverage
+*.local
+*.log
+test-results
+playwright-report

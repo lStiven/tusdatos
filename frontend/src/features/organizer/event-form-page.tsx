@@ -4,7 +4,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { ApiError, errorMessage, fieldErrors } from '@/api/errors'
+import { errorMessage } from '@/api/errors'
 import { FormField, SelectField, TextareaField } from '@/components/form-field'
 import { FormNotice } from '@/components/form-notice'
 import { PageHeader } from '@/components/page-header'
@@ -16,6 +16,11 @@ import { useCurrentUser } from '@/features/auth/api'
 import { useEvent, useOccupancy, useSessions } from '@/features/events/api'
 import type { Event } from '@/features/events/rules'
 import { es } from '@/i18n/es'
+import {
+  formLevelError,
+  showFieldErrors,
+  type CodeFields,
+} from '@/lib/form-errors'
 import { fromZonedInput, isTimeZone, toZonedInput } from '@/lib/dates'
 import { can } from '@/lib/permissions'
 import { useActiveVenues, useSaveEvent, type EventInput } from './api'
@@ -64,7 +69,7 @@ const schema = z
 type Values = z.infer<typeof schema>
 
 /** Business errors that belong to one field; the rest go above the form. */
-const fieldOf: Partial<Record<string, keyof Values>> = {
+const fieldOf: CodeFields<Values> = {
   capacity_below_confirmed: 'capacity',
   invalid_event_schedule: 'ends_at',
   sessions_outside_event: 'starts_at',
@@ -218,21 +223,12 @@ function EventForm({ event }: { event?: Event }) {
         toast.success(event ? es.eventForm.saved : es.eventForm.created)
         navigate(`/organizador/eventos/${saved.id}`)
       },
-      onError: (error) => {
-        const field =
-          error instanceof ApiError ? fieldOf[error.code] : undefined
-        if (field) setError(field, { message: errorMessage(error) })
-        for (const [name, message] of Object.entries(fieldErrors(error))) {
-          if (name in schema.shape) setError(name as keyof Values, { message })
-        }
-      },
+      onError: (error) =>
+        showFieldErrors(error, setError, Object.keys(schema.shape), fieldOf),
     }),
   )
 
-  const formLevel =
-    save.error && save.error.status !== 422 && !fieldOf[save.error.code]
-      ? errorMessage(save.error)
-      : null
+  const formLevel = formLevelError(save.error, fieldOf)
   const confirmed = occupancy.data?.confirmed
 
   return (

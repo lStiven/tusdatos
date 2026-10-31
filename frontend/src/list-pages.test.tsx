@@ -1,8 +1,8 @@
 import { screen, waitFor } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse, type JsonBodyType } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { es } from '@/i18n/es'
-import { apiError, organizer, page } from '@/test/fixtures'
+import { admin, apiError, page } from '@/test/fixtures'
 import { renderApp } from '@/test/render'
 import { server } from '@/test/server'
 
@@ -23,18 +23,27 @@ describe('list pages', () => {
       es.myRegistrations.retry,
     ],
     ['/ponentes', '/api/v1/speakers', es.speakers.loadError, es.speakers.retry],
+    ['/admin/usuarios', '/api/v1/users', es.users.loadError, es.users.retry],
+    // Not paginated: a plain array.
+    [
+      '/admin/sedes',
+      '/api/v1/venues',
+      es.venues.loadError,
+      es.venues.retry,
+      [],
+    ],
   ])(
     '%s shows the error and recovers on retry',
-    async (path, endpoint, title, retry) => {
+    async (path, endpoint, title, retry, empty: JsonBodyType = page([])) => {
       let calls = 0
       server.use(
         http.get(endpoint, () =>
           ++calls === 1
             ? apiError(500, 'internal_server_error')
-            : HttpResponse.json(page([])),
+            : HttpResponse.json(empty),
         ),
       )
-      const { user } = renderApp(path, { as: organizer })
+      const { user } = renderApp(path, { as: admin })
 
       expect(
         await screen.findByRole('heading', { name: title }),

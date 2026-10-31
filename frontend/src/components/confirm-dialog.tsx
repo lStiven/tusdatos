@@ -16,10 +16,13 @@ import { cn } from '@/lib/utils'
 
 /**
  * Asks before an action, saying its effect. With `typeToConfirm`, the user must
- * type that text first: for final actions with wide effects.
+ * type that text first: for final actions with wide effects. Without `trigger`,
+ * it is controlled with `open`/`onOpenChange` (e.g. opened from a switch).
  */
 export function ConfirmDialog({
   trigger,
+  open,
+  onOpenChange,
   title,
   description,
   confirmLabel,
@@ -28,7 +31,9 @@ export function ConfirmDialog({
   danger = false,
   typeToConfirm,
 }: {
-  trigger: ReactNode
+  trigger?: ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   title: string
   description: string
   confirmLabel: string
@@ -42,8 +47,14 @@ export function ConfirmDialog({
   const ready = !typeToConfirm || typed.trim() === typeToConfirm.text
 
   return (
-    <AlertDialog onOpenChange={() => setTyped('')}>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        setTyped('')
+        onOpenChange?.(next)
+      }}
+    >
+      {trigger && <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>

@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { ApiError, errorMessage, fieldErrors } from '@/api/errors'
 import {
   Field,
   FormField,
@@ -24,6 +23,11 @@ import { Input } from '@/components/ui/input'
 import type { Event, Session } from '@/features/events/rules'
 import { useSpeakers } from '@/features/speakers/api'
 import { es } from '@/i18n/es'
+import {
+  formLevelError,
+  showFieldErrors,
+  type CodeFields,
+} from '@/lib/form-errors'
 import { fromZonedInput, toZonedInput } from '@/lib/dates'
 import { useRooms, useSaveSession, type SessionInput } from './api'
 
@@ -65,7 +69,7 @@ function schemaFor(start: string, end: string) {
 
 type Values = z.infer<ReturnType<typeof schemaFor>>
 
-const fieldOf: Partial<Record<string, keyof Values>> = {
+const fieldOf: CodeFields<Values> = {
   room_not_available: 'room_id',
   capacity_exceeds_room: 'room_id',
   room_not_in_event_venue: 'room_id',
@@ -191,20 +195,11 @@ function SessionForm({
         )
         onDone()
       },
-      onError: (error) => {
-        const field =
-          error instanceof ApiError ? fieldOf[error.code] : undefined
-        if (field) setError(field, { message: errorMessage(error) })
-        for (const [name, message] of Object.entries(fieldErrors(error))) {
-          if (name in schema.shape) setError(name as keyof Values, { message })
-        }
-      },
+      onError: (error) =>
+        showFieldErrors(error, setError, Object.keys(schema.shape), fieldOf),
     }),
   )
-  const formLevel =
-    save.error && save.error.status !== 422 && !fieldOf[save.error.code]
-      ? errorMessage(save.error)
-      : null
+  const formLevel = formLevelError(save.error, fieldOf)
 
   return (
     <form noValidate onSubmit={submit} className="grid gap-4 sm:grid-cols-2">

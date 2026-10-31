@@ -2,11 +2,14 @@ import { useSearchParams } from 'react-router'
 
 /**
  * List state kept in the URL, so it can be shared and "back" restores it:
- * `estado` (one of `statuses`, else `null`) and `desde` (the page offset).
+ * a filter (`param`, one of `statuses`, else `null`) and `desde` (the page offset).
  */
-export function useListParams<T extends string>(statuses: readonly T[]) {
+export function useListParams<T extends string>(
+  statuses: readonly T[],
+  param = 'estado',
+) {
   const [params, setParams] = useSearchParams()
-  const raw = params.get('estado')
+  const raw = params.get(param)
   const status = statuses.includes(raw as T) ? (raw as T) : null
   const offset = Math.max(Number(params.get('desde')) || 0, 0)
 

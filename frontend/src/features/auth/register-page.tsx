@@ -3,10 +3,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, Navigate, useNavigate } from 'react-router'
 import { LoaderCircle } from 'lucide-react'
 import { z } from 'zod'
-import { ApiError, errorMessage, fieldErrors } from '@/api/errors'
 import { FormField, PasswordField } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import { es } from '@/i18n/es'
+import {
+  formLevelError,
+  showFieldErrors,
+  type CodeFields,
+} from '@/lib/form-errors'
 import { useRegister, type Registration } from './api'
 import { AuthLayout } from './auth-layout'
 import { FormNotice } from '@/components/form-notice'
@@ -20,6 +24,9 @@ const schema = z.object({
     .min(8, es.auth.validation.passwordLength)
     .max(128, es.auth.validation.passwordLength),
 })
+
+// `email_taken` goes next to the email; other errors, above the form.
+const byCode: CodeFields<Registration> = { email_taken: 'email' }
 
 export function RegisterPage() {
   const token = useToken()
@@ -36,24 +43,11 @@ export function RegisterPage() {
   const submit = handleSubmit((data) =>
     signUp.mutate(data, {
       onSuccess: () => navigate('/', { replace: true }),
-      onError: (error) => {
-        // Errors that belong to a field go next to it; the rest, above the form.
-        if (error instanceof ApiError && error.code === 'email_taken') {
-          setError('email', { message: errorMessage(error) })
-        }
-        for (const [field, message] of Object.entries(fieldErrors(error))) {
-          if (field in schema.shape)
-            setError(field as keyof Registration, { message })
-        }
-      },
+      onError: (error) =>
+        showFieldErrors(error, setError, Object.keys(schema.shape), byCode),
     }),
   )
-  const formLevel =
-    signUp.error &&
-    signUp.error.code !== 'email_taken' &&
-    signUp.error.status !== 422
-      ? errorMessage(signUp.error)
-      : null
+  const formLevel = formLevelError(signUp.error, byCode)
 
   return (
     <AuthLayout

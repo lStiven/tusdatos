@@ -1,5 +1,8 @@
 import { Outlet, type RouteObject } from 'react-router'
 import { AppShell } from '@/components/layout/app-shell'
+import { UsersPage } from '@/features/admin/users-page'
+import { VenueDetailPage } from '@/features/admin/venue-detail-page'
+import { VenuesPage } from '@/features/admin/venues-page'
 import { RequireAuth, RequireRole } from '@/features/auth/guards'
 import { LoginPage } from '@/features/auth/login-page'
 import { RegisterPage } from '@/features/auth/register-page'
@@ -64,20 +67,17 @@ export const routes: RouteObject[] = [
             ),
           },
           {
-            path: 'admin/sedes',
+            path: 'admin',
             element: (
               <RequireRole roles={[...admin]}>
-                <ComingSoonPage title={es.nav.venues} phase={4} />
+                <Outlet />
               </RequireRole>
             ),
-          },
-          {
-            path: 'admin/usuarios',
-            element: (
-              <RequireRole roles={[...admin]}>
-                <ComingSoonPage title={es.nav.users} phase={4} />
-              </RequireRole>
-            ),
+            children: [
+              { path: 'sedes', element: <VenuesPage /> },
+              { path: 'sedes/:venueId', element: <VenueDetailPage /> },
+              { path: 'usuarios', element: <UsersPage /> },
+            ],
           },
           ...(labEnabled
             ? [

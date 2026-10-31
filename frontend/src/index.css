@@ -192,3 +192,12 @@
 .dark {
   color-scheme: dark;
 }
+
+/*
+ * shadcn lightens primary buttons on hover (`bg-primary/80`), which drops the
+ * text below AA contrast. Mixing towards the foreground darkens them in light
+ * mode and lightens them in dark mode: contrast goes up instead of down.
+ */
+[data-slot='button'][data-variant='default']:hover:not(:disabled) {
+  background-color: color-mix(in oklch, var(--primary), var(--foreground) 15%);
+}

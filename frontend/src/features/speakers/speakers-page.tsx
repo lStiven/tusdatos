@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { errorMessage, fieldErrors } from '@/api/errors'
+import { errorMessage } from '@/api/errors'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { FormField, TextareaField } from '@/components/form-field'
 import { FormNotice } from '@/components/form-notice'
@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { es } from '@/i18n/es'
+import { formLevelError, showFieldErrors } from '@/lib/form-errors'
 import { useListParams } from '@/lib/use-list-params'
 import {
   useDeleteSpeaker,
@@ -225,25 +226,15 @@ function SpeakerForm({
           toast.success(speaker ? t.saved : t.created)
           onDone()
         },
-        onError: (error) => {
-          for (const [name, message] of Object.entries(fieldErrors(error))) {
-            if (name in schema.shape)
-              setError(name as keyof Values, { message })
-          }
-        },
+        onError: (error) =>
+          showFieldErrors(error, setError, Object.keys(schema.shape)),
       },
     ),
   )
 
   return (
     <form noValidate onSubmit={submit} className="grid gap-4">
-      <FormNotice
-        message={
-          save.error && save.error.status !== 422
-            ? errorMessage(save.error)
-            : null
-        }
-      />
+      <FormNotice message={formLevelError(save.error)} />
       <FormField
         label={t.form.fullName}
         error={formState.errors.full_name?.message}

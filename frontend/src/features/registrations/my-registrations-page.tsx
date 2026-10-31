@@ -1,7 +1,8 @@
 import { ChevronRight, CloudOff, Hourglass, TicketX } from 'lucide-react'
 import { motion } from 'motion/react'
-import { Link, useSearchParams } from 'react-router'
+import { Link } from 'react-router'
 import { errorMessage } from '@/api/errors'
+import { FilterLinks } from '@/components/filter-links'
 import { PageHeader } from '@/components/page-header'
 import { Pagination } from '@/components/pagination'
 import { StatePanel } from '@/components/state-panel'
@@ -11,38 +12,23 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { Registration } from '@/features/events/rules'
 import { es } from '@/i18n/es'
 import { formatDateTime } from '@/lib/dates'
-import { cn } from '@/lib/utils'
+import { useListParams } from '@/lib/use-list-params'
 import { useMyRegistrations } from './api'
 
 const PAGE_SIZE = 10
-const tabs = ['ALL', 'CONFIRMED', 'WAITLISTED', 'CANCELLED'] as const
-type Tab = (typeof tabs)[number]
+const statuses = ['CONFIRMED', 'WAITLISTED', 'CANCELLED'] as const
 
 const list = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } }
 const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }
 
-function isTab(value: string | null): value is Tab {
-  return tabs.includes(value as Tab)
-}
-
 export function MyRegistrationsPage() {
-  const [params, setParams] = useSearchParams()
-  const raw = params.get('estado')
-  const tab: Tab = isTab(raw) ? raw : 'ALL'
-  const offset = Math.max(Number(params.get('desde')) || 0, 0)
+  const { status, offset, setOffset } = useListParams(statuses)
 
   const { data, error, isPending, isError, refetch } = useMyRegistrations({
-    status: tab === 'ALL' ? undefined : tab,
+    status: status ?? undefined,
     limit: PAGE_SIZE,
     offset,
   })
-
-  function goTo(nextOffset: number) {
-    const next = new URLSearchParams(params)
-    if (nextOffset) next.set('desde', String(nextOffset))
-    else next.delete('desde')
-    setParams(next)
-  }
 
   return (
     <>
@@ -50,25 +36,17 @@ export function MyRegistrationsPage() {
         title={es.myRegistrations.title}
         description={es.myRegistrations.subtitle}
       />
-      {/* Links, not tabs: each filter is a URL that can be shared or bookmarked. */}
-      <nav aria-label={es.myRegistrations.filterLabel} className="mb-6">
-        <ul className="inline-flex max-w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1">
-          {tabs.map((value) => (
-            <li key={value}>
-              <Link
-                to={value === 'ALL' ? '.' : `?estado=${value}`}
-                aria-current={value === tab ? 'page' : undefined}
-                className={cn(
-                  'block rounded-md px-3 py-1 text-sm font-medium whitespace-nowrap text-foreground/80 transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                  value === tab && 'bg-background text-foreground shadow-sm',
-                )}
-              >
-                {es.myRegistrations.tabs[value]}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <FilterLinks
+        label={es.myRegistrations.filterLabel}
+        current={status}
+        options={[
+          { value: null, label: es.myRegistrations.tabs.ALL },
+          ...statuses.map((value) => ({
+            value,
+            label: es.myRegistrations.tabs[value],
+          })),
+        ]}
+      />
 
       {isPending ? (
         <div aria-busy className="space-y-3">
@@ -98,7 +76,7 @@ export function MyRegistrationsPage() {
       ) : (
         <>
           <motion.ul
-            key={`${tab}|${offset}`}
+            key={`${status}|${offset}`}
             className="space-y-3"
             variants={list}
             initial="hidden"
@@ -114,7 +92,7 @@ export function MyRegistrationsPage() {
             total={data.total}
             limit={PAGE_SIZE}
             offset={offset}
-            onChange={goTo}
+            onChange={setOffset}
           />
         </>
       )}

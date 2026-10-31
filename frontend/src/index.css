@@ -168,3 +168,19 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Sonner's rich colours, mapped to our tokens (AA contrast checked with axe). */
+:root [data-sonner-toaster][data-sonner-theme] {
+  --success-bg: var(--success-soft);
+  --success-text: var(--success);
+  --success-border: color-mix(in oklch, var(--success) 25%, transparent);
+  --info-bg: var(--info-soft);
+  --info-text: var(--info);
+  --info-border: color-mix(in oklch, var(--info) 25%, transparent);
+  --warning-bg: var(--warning-soft);
+  --warning-text: var(--warning);
+  --warning-border: color-mix(in oklch, var(--warning) 25%, transparent);
+  --error-bg: var(--danger-soft);
+  --error-text: var(--danger);
+  --error-border: color-mix(in oklch, var(--danger) 25%, transparent);
+}

@@ -5,6 +5,7 @@ import {
   CloudOff,
   Globe,
   MapPin,
+  Settings2,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
@@ -22,7 +23,9 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useCurrentUser } from '@/features/auth/api'
 import { es } from '@/i18n/es'
+import { can } from '@/lib/permissions'
 import { formatDateTime, formatRange } from '@/lib/dates'
 import {
   useEvent,
@@ -54,6 +57,7 @@ export function EventDetailPage() {
 }
 
 function EventDetail({ id }: { id: number }) {
+  const { data: user } = useCurrentUser()
   const { data: event, error, isPending, refetch } = useEvent(id)
 
   if (isPending) return <DetailSkeleton />
@@ -75,7 +79,19 @@ function EventDetail({ id }: { id: number }) {
       <BackLink />
       <PageHeader
         title={event.title}
-        actions={<StatusBadge kind="event" status={event.status} />}
+        actions={
+          <div className="flex items-center gap-3">
+            <StatusBadge kind="event" status={event.status} />
+            {user && can(user, 'event:manage', event) && (
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/organizador/eventos/${event.id}`}>
+                  <Settings2 aria-hidden />
+                  {es.manage.manage}
+                </Link>
+              </Button>
+            )}
+          </div>
+        }
       />
       <EventFacts event={event} />
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">

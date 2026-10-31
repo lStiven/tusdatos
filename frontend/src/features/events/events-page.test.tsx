@@ -107,6 +107,14 @@ describe('EventsPage', () => {
     expect(
       screen.getByRole('button', { name: es.pagination.next }),
     ).toBeDisabled()
+
+    await user.click(
+      screen.getByRole('button', { name: es.pagination.previous }),
+    )
+    expect(
+      await screen.findByText(es.pagination.range(1, 12, 20)),
+    ).toBeInTheDocument()
+    expect(router.state.location.search).toBe('')
   })
 
   it('offers to clear the filters when nothing matches', async () => {

@@ -1,7 +1,6 @@
 import { CalendarX2, CloudOff } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useCallback } from 'react'
-import { useSearchParams } from 'react-router'
 import { errorMessage } from '@/api/errors'
 import { PageHeader } from '@/components/page-header'
 import { Pagination } from '@/components/pagination'
@@ -17,6 +16,7 @@ import {
 import { useCurrentUser } from '@/features/auth/api'
 import { es } from '@/i18n/es'
 import { hasRole } from '@/lib/permissions'
+import { useListParams } from '@/lib/use-list-params'
 import { useEvents } from './api'
 import { EventCard, EventCardSkeleton } from './event-card'
 import type { Event } from './rules'
@@ -33,18 +33,12 @@ const statuses: Event['status'][] = [
 const list = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } }
 const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }
 
-function isStatus(value: string | null): value is Event['status'] {
-  return statuses.includes(value as Event['status'])
-}
-
 export function EventsPage() {
   const { data: user } = useCurrentUser()
   // Filters and page live in the URL: shareable, and "back" restores them.
-  const [params, setParams] = useSearchParams()
+  const { params, setParams, status, offset, setOffset } =
+    useListParams(statuses)
   const title = params.get('q') ?? ''
-  const rawStatus = params.get('estado')
-  const status = isStatus(rawStatus) ? rawStatus : undefined
-  const offset = Math.max(Number(params.get('desde')) || 0, 0)
 
   const update = useCallback(
     (changes: Record<string, string | null>) =>
@@ -65,7 +59,7 @@ export function EventsPage() {
 
   const { data, error, isPending, isError, refetch } = useEvents({
     title: title || undefined,
-    status,
+    status: status ?? undefined,
     limit: PAGE_SIZE,
     offset,
   })
@@ -155,7 +149,7 @@ export function EventsPage() {
             total={data.total}
             limit={PAGE_SIZE}
             offset={offset}
-            onChange={(next) => update({ desde: next ? String(next) : null })}
+            onChange={setOffset}
           />
         </>
       )}

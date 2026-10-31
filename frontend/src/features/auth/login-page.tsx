@@ -12,7 +12,7 @@ import { labEnabled } from '@/lib/env'
 import { useLogin, type Credentials } from './api'
 import { AuthLayout } from './auth-layout'
 import { DemoAccounts } from './demo-accounts'
-import { FormNotice } from './form-error'
+import { FormNotice } from '@/components/form-notice'
 import { safeNext } from './safe-next'
 import { takeEndReason, useToken } from './session'
 

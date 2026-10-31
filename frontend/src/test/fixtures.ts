@@ -136,3 +136,41 @@ export function page<T>(
 ) {
   return { items, total, limit, offset }
 }
+
+export function makeVenue(
+  overrides: Partial<Schemas['VenueRead']> = {},
+): Schemas['VenueRead'] {
+  return {
+    id: 4,
+    name: 'Ágora',
+    address: null,
+    city: 'Bogotá',
+    is_active: true,
+    ...overrides,
+  }
+}
+
+export function makeRoom(
+  overrides: Partial<Schemas['RoomRead']> = {},
+): Schemas['RoomRead'] {
+  return {
+    id: 7,
+    venue_id: 4,
+    name: 'Main Auditorium',
+    capacity: 150,
+    is_active: true,
+    ...overrides,
+  }
+}
+
+export function makeSpeaker(
+  overrides: Partial<Schemas['SpeakerRead']> = {},
+): Schemas['SpeakerRead'] {
+  return {
+    id: 1,
+    full_name: 'Lucía Fernández',
+    email: null,
+    bio: null,
+    ...overrides,
+  }
+}

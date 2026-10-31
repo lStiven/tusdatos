@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { dateTile, dayKey, formatRange, formatTime } from './dates'
+import {
+  dateTile,
+  dayKey,
+  formatRange,
+  formatTime,
+  fromZonedInput,
+  isTimeZone,
+  toZonedInput,
+} from './dates'
 
 describe('dates', () => {
   // 2026-11-29 03:00 UTC is still the 28th, at 22:00, in Bogotá (UTC-5).
@@ -30,5 +38,25 @@ describe('dates', () => {
         'America/Bogota',
       ),
     ).toMatch(/13 dic 2026.*14 dic 2026/)
+  })
+})
+
+describe('zoned inputs', () => {
+  it.each([
+    ['2026-11-28T09:00', 'America/Bogota', '2026-11-28T09:00:00-05:00'],
+    // Madrid changes offset between winter and summer.
+    ['2026-01-15T09:30', 'Europe/Madrid', '2026-01-15T09:30:00+01:00'],
+    ['2026-07-15T09:30', 'Europe/Madrid', '2026-07-15T09:30:00+02:00'],
+    ['2026-07-15T09:30', 'Asia/Kolkata', '2026-07-15T09:30:00+05:30'],
+    // An hour before Madrid moves its clocks forward (01:00 UTC): still +01:00.
+    ['2026-03-29T01:30', 'Europe/Madrid', '2026-03-29T01:30:00+01:00'],
+  ])('%s in %s is %s, and back', (local, zone, iso) => {
+    expect(fromZonedInput(local, zone)).toBe(iso)
+    expect(toZonedInput(iso, zone)).toBe(local)
+  })
+
+  it('recognises IANA zones', () => {
+    expect(isTimeZone('America/Bogota')).toBe(true)
+    expect(isTimeZone('Mars/Olympus')).toBe(false)
   })
 })

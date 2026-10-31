@@ -11,6 +11,7 @@ import {
   makeOccupancy,
   makeRegistration,
   makeSession,
+  organizer,
 } from '@/test/fixtures'
 import { renderApp } from '@/test/render'
 import { server } from '@/test/server'
@@ -305,6 +306,19 @@ describe('EventDetailPage', () => {
     expect(
       await screen.findByText(es.errors.byCode.internal_server_error),
     ).toBeInTheDocument()
+  })
+
+  it.each([
+    ['its organizer', organizer, true],
+    ['an attendee', attendee, false],
+  ])('offers to manage the event only to %s', async (_, user, visible) => {
+    serveDetail()
+    renderApp('/eventos/1', { as: user })
+
+    await screen.findByRole('heading', { name: 'PyData Bogotá' })
+    expect(
+      screen.queryByRole('link', { name: es.manage.manage }) !== null,
+    ).toBe(visible)
   })
 
   it("shows someone else's draft as not found", async () => {

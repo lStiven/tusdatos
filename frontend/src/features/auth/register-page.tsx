@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { es } from '@/i18n/es'
 import { useRegister, type Registration } from './api'
 import { AuthLayout } from './auth-layout'
-import { FormNotice } from './form-error'
+import { FormNotice } from '@/components/form-notice'
 import { useToken } from './session'
 
 const schema = z.object({

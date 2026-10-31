@@ -8,7 +8,13 @@ import { useOccupancy } from './api'
 import { OccupancyMeter } from './occupancy-meter'
 import type { Event } from './rules'
 
-export function EventCard({ event }: { event: Event }) {
+export function EventCard({
+  event,
+  to = `/eventos/${event.id}`,
+}: {
+  event: Event
+  to?: string
+}) {
   // Seats only matter while registrations can happen.
   const { data: occupancy } = useOccupancy(
     event.id,
@@ -33,7 +39,7 @@ export function EventCard({ event }: { event: Event }) {
           <h2 className="font-heading leading-snug font-semibold">
             {/* The link covers the whole card; the rest stays plain text. */}
             <Link
-              to={`/eventos/${event.id}`}
+              to={to}
               className="outline-none after:absolute after:inset-0 after:rounded-xl group-hover:text-primary"
             >
               {event.title}

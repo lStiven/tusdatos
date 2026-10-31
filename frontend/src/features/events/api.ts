@@ -11,6 +11,7 @@ import type { Event, Session } from './rules'
 export interface EventFilters {
   title?: string
   status?: Event['status']
+  mine?: boolean
   limit: number
   offset: number
 }
@@ -75,11 +76,12 @@ export function useMyRegistration(id: number) {
   })
 }
 
-export function useSessions(id: number) {
+export function useSessions(id: number, enabled = true) {
   return useQuery({
     queryKey: eventKeys.sessions(id),
     queryFn: () =>
       unwrap(api.GET('/api/v1/events/{event_id}/sessions', path(id))),
+    enabled,
   })
 }
 

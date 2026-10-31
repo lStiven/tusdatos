@@ -201,3 +201,9 @@
 [data-slot='button'][data-variant='default']:hover:not(:disabled) {
   background-color: color-mix(in oklch, var(--primary), var(--foreground) 15%);
 }
+
+/* While the theme switches: colours change at once, not animated one by one. */
+.theme-switching,
+.theme-switching * {
+  transition: none !important;
+}

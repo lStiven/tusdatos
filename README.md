@@ -59,14 +59,30 @@ Cada tipo de documentación responde a una pregunta distinta y vive en un solo l
 
 ## Levantar en local
 
-Con Docker basta. Desde la raíz del repositorio:
+Con Docker basta: un solo comando construye y arranca la base de datos, las migraciones, la API y el frontend. Desde la raíz del repositorio:
 
 ```bash
 python3 scripts/bootstrap_env.py   # crea backend/.env con un JWT_SECRET_KEY generado
 docker compose up --build -d       # app en http://localhost:8080 · API en http://localhost:8000/docs
+docker compose ps                  # api y web deben aparecer como «healthy»
 ```
 
-Los pasos completos están en [backend/README.md](backend/README.md):
+Para entrar en la app hace falta una cuenta. Elige una opción:
+
+- **Datos de demo** (lo más rápido para probar): `docker compose exec api python -m app.modules.demo.cli seed`. Después, el login de http://localhost:8080 ofrece entrar con un clic en cada cuenta (contraseña `demo1234`): asistente, organizadora o administrador.
+- **Tu propio administrador:** `docker compose exec api python -m app.modules.auth.cli create-admin --email admin@example.com --full-name "Admin"`. Las demás cuentas se crean desde «Regístrate».
+
+Según tu caso:
+
+| Caso | Qué hacer |
+|---|---|
+| Acabas de clonar el repositorio | Los tres comandos de arriba. La primera vez tarda unos minutos: descarga las imágenes base y las dependencias de Python y Node |
+| Ya lo tenías levantado y actualizaste el código (`git pull`) | `docker compose up --build -d`: reconstruye lo que cambió y reemplaza los contenedores. Los datos se conservan y no hace falta borrar la caché del navegador |
+| Ya tienes `backend/.env` | Puedes ejecutar `bootstrap_env.py` igualmente: no pisa el archivo, solo rellena `JWT_SECRET_KEY` si está vacío |
+| El puerto 8080 o el 8000 está ocupado (por ejemplo, por el Dev Container) | `WEB_PORT=8081 API_PORT=8001 docker compose up --build -d`. La app no depende del puerto de la API: nginx habla con ella dentro de la red de Compose |
+| Quieres empezar de cero | `docker compose down -v` (borra la base de datos) y vuelve a `docker compose up --build -d` |
+
+Si algo no arranca, el motivo está en `docker compose logs migrate`, `docker compose logs api` o `docker compose logs web`. Los detalles de cada parte están en [backend/README.md](backend/README.md) y [frontend/README.md](frontend/README.md):
 - crear el primer administrador;
 - recorrer un flujo de prueba;
 - o, si lo prefieres, cargar [datos de demo](backend/README.md#datos-de-demo-opcional) que cubren cada regla y caso borde, con una guía de qué probar;
@@ -83,8 +99,7 @@ Implementado:
 - eventos;
 - inscripciones con lista de espera;
 - charlas: salas y ponentes sin solapes, interés y métricas por charla;
-- health check.
-
-En curso: el frontend. Hoy tiene su base (cliente de la API, imagen Docker y servicio en el stack local); las vistas por rol van a continuación.
+- health check;
+- frontend: vistas por rol (asistente, organizador y administrador) y un laboratorio que comprueba las reglas de negocio y la concurrencia contra la API real.
 
 El stack local se levanta con Docker Compose. El despliegue a producción queda fuera del alcance actual.

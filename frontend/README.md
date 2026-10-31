@@ -8,13 +8,23 @@ El navegador habla con la API **en el mismo origen**: Vite (desarrollo) y nginx 
 
 ## A. Levantar con Docker Compose
 
-Desde la raíz del repositorio, con el stack completo:
+Desde la raíz del repositorio, con el stack completo (los pasos y casos están en el [README raíz](../README.md#levantar-en-local)):
 
 ```bash
+python3 scripts/bootstrap_env.py
 docker compose up --build -d   # app en http://localhost:8080, API en http://localhost:8000/docs
 ```
 
-El puerto se cambia con `WEB_PORT`. La imagen incluye el laboratorio de pruebas (`VITE_ENABLE_LAB=true` en `compose.yaml`).
+El servicio `web` construye la imagen de este directorio en dos etapas: `npm ci` + `npm run build` en Node 26 (tipos incluidos: si no compila, la imagen no se crea) y nginx sin root con el resultado. nginx:
+
+- sirve la app y devuelve `index.html` en cualquier ruta del cliente (`/eventos/3` funciona al recargar);
+- redirige `/api` y `/health` al servicio `api`, resolviendo su nombre en cada petición: `web` arranca aunque `api` se recree;
+- cachea para siempre los archivos de `/assets/` (llevan hash) y revalida `index.html`, así que tras reconstruir el navegador carga la versión nueva;
+- aplica una CSP estricta (`default-src 'self'`): ningún script inline. Por eso el tema se aplica con `public/theme-init.js` y Zod se configura sin `new Function` (`src/lib/zod-config.ts`); `src/csp.test.tsx` falla si aparece un script inline.
+
+El puerto se cambia con `WEB_PORT`. La imagen incluye el laboratorio de pruebas (`VITE_ENABLE_LAB=true` en `compose.yaml`; se fija al construir, no al arrancar). Con los datos de demo cargados, `E2E_BASE_URL=http://localhost:8080 just e2e` (desde `frontend/`) recorre la app servida por nginx.
+
+Si `web` no aparece como `healthy` en `docker compose ps`, mira `docker compose logs web`; si ni siquiera arranca, suele ser que `api` no llegó a `healthy` (`docker compose logs api`).
 
 ## B. Desarrollar en el Dev Container
 

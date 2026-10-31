@@ -1,5 +1,4 @@
 import { Monitor, Moon, Sun } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -10,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { es } from '@/i18n/es'
+import { useTheme, type Theme } from '@/lib/theme'
 
 const options = [
   { value: 'light', label: es.theme.light, icon: Sun },
@@ -18,7 +18,7 @@ const options = [
 ] as const
 
 export function ThemeMenu() {
-  const { theme = 'system', setTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -35,7 +35,10 @@ export function ThemeMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>{es.theme.label}</DropdownMenuLabel>
-        <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+        <DropdownMenuRadioGroup
+          value={theme}
+          onValueChange={(value) => setTheme(value as Theme)}
+        >
           {options.map(({ value, label, icon: Icon }) => (
             <DropdownMenuRadioItem key={value} value={value}>
               <Icon aria-hidden />

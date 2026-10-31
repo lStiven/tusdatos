@@ -36,15 +36,16 @@ docker compose ps
 
 `bootstrap_env.py` no pisa un `.env` que ya exista: solo rellena `JWT_SECRET_KEY` si está vacío.
 
-En `docker compose ps`, `api` debe aparecer como `healthy`; la primera vez tarda unos segundos más. Compose arranca los servicios en orden:
+En `docker compose ps`, `api` y `web` deben aparecer como `healthy`; la primera vez tarda unos segundos más. Compose arranca los servicios en orden:
 
 1. `postgres` arranca y crea las dos bases de datos.
 2. `migrate` aplica las migraciones (`alembic upgrade head`) y termina.
 3. `api` arranca cuando `migrate` terminó bien, y queda en http://localhost:8000.
+4. `web` (el frontend) arranca cuando `api` está `healthy`, y queda en http://localhost:8080 ([frontend/README.md](../frontend/README.md)).
 
 Si `up` termina con `service "migrate" didn't complete successfully: exit 1`, Compose no muestra el motivo: está en `docker compose logs migrate`. Lo habitual es un `JWT_SECRET_KEY` vacío o de menos de 32 caracteres en `backend/.env` (`ValidationError … jwt_secret_key`). Ejecuta `python3 scripts/bootstrap_env.py` y repite `docker compose up --build -d`.
 
-Si el puerto 8000 está ocupado, usa otro: `API_PORT=8001 docker compose up --build -d`.
+Si el puerto 8000 está ocupado, usa otro: `API_PORT=8001 docker compose up --build -d` (el de la app se cambia con `WEB_PORT`).
 
 Crea el primer administrador. Pide la contraseña dos veces, de 8 caracteres como mínimo:
 

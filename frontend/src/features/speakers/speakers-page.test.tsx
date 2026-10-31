@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import type { components } from '@/api/schema'
@@ -81,6 +81,20 @@ describe('SpeakersPage', () => {
       email: null,
       bio: null,
     })
+  })
+
+  it('gives focus back to the button that opened the dialog', async () => {
+    serveSpeakers()
+    const { user } = renderApp('/ponentes', { as: organizer })
+    const edit = await screen.findByRole('button', {
+      name: t.edit('Lucía Fernández'),
+    })
+
+    await user.click(edit)
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+
+    await waitFor(() => expect(edit).toHaveFocus())
   })
 
   it('explains why a speaker with sessions cannot be deleted', async () => {

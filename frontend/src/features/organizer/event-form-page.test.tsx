@@ -11,6 +11,7 @@ import {
   makeVenue,
   organizer,
 } from '@/test/fixtures'
+import { pickDateTime } from '@/test/date-time'
 import { renderApp } from '@/test/render'
 import { server } from '@/test/server'
 
@@ -57,8 +58,8 @@ describe('NewEventPage', () => {
     await user.type(screen.getByLabelText(f.capacity), '50')
     await user.clear(screen.getByLabelText(f.timezone))
     await user.type(screen.getByLabelText(f.timezone), 'Europe/Madrid')
-    await user.type(screen.getByLabelText(f.startsAt), '2027-07-01T09:00')
-    await user.type(screen.getByLabelText(f.endsAt), '2027-07-01T18:00')
+    await pickDateTime(user, f.startsAt, '2027-07-01T09:00')
+    await pickDateTime(user, f.endsAt, '2027-07-01T18:00')
     await user.click(screen.getByLabelText(f.venue))
     await user.click(
       await screen.findByRole('option', { name: 'Ágora · Bogotá' }),
@@ -89,9 +90,9 @@ describe('NewEventPage', () => {
     await user.clear(await screen.findByLabelText(f.timezone))
     await user.type(screen.getByLabelText(f.timezone), 'Mars/Olympus')
     await user.type(screen.getByLabelText(f.capacity), '0')
-    await user.type(screen.getByLabelText(f.startsAt), '2027-07-01T09:00')
-    await user.type(screen.getByLabelText(f.endsAt), '2027-07-01T08:00')
-    await user.type(screen.getByLabelText(f.closesAt), '2027-07-02T08:00')
+    await pickDateTime(user, f.startsAt, '2027-07-01T09:00')
+    await pickDateTime(user, f.endsAt, '2027-07-01T08:00')
+    await pickDateTime(user, f.closesAt, '2027-07-02T08:00')
     await user.click(screen.getByRole('button', { name: f.create }))
 
     for (const message of [
@@ -132,9 +133,9 @@ describe('EditEventPage', () => {
       as: organizer,
     })
 
-    expect(await screen.findByLabelText(f.startsAt)).toHaveValue(
-      '2027-03-10T09:00',
-    )
+    expect(
+      await screen.findByRole('button', { name: f.startsAt }),
+    ).toHaveTextContent('10 mar 2027, 9:00')
     expect(
       await screen.findByText(
         new RegExp(f.capacityHint(2).replace('.', '\\.')),

@@ -44,6 +44,7 @@ import type { Event, Session } from '@/features/events/rules'
 import { es } from '@/i18n/es'
 import { formatDay, formatTime } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+import { useReturnFocus } from '@/lib/use-return-focus'
 import { useSessionAction, type SessionAction } from './api'
 import { isEditable, scheduleBlock } from './rules'
 import { SessionDialog } from './session-dialog'
@@ -64,6 +65,7 @@ export function SessionsManager({ event }: { event: Event }) {
   const [editing, setEditing] = useState<Session | 'new' | null>(null)
   const [cancelling, setCancelling] = useState<Session | null>(null)
   const editable = isEditable(event)
+  const returnFocus = useReturnFocus()
 
   const run = (session: Session, kind: SessionAction) =>
     action.mutate(
@@ -134,7 +136,7 @@ export function SessionsManager({ event }: { event: Event }) {
         open={cancelling !== null}
         onOpenChange={(open) => !open && setCancelling(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent {...returnFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>{s.cancelDialog.title}</AlertDialogTitle>
             <AlertDialogDescription>

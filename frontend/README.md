@@ -29,16 +29,17 @@ Para usar otra API: `API_URL=http://otra:8000 just dev`.
 
 ## Comandos
 
-| Comando          | Qué hace                                                                                              |
-| ---------------- | ----------------------------------------------------------------------------------------------------- |
-| `just install`   | Dependencias exactas del `package-lock.json` (`npm ci`)                                               |
-| `just dev`       | Servidor de desarrollo con recarga en caliente                                                        |
-| `just api-types` | Regenera `src/api/schema.d.ts` desde el `/openapi.json` de la API en marcha                           |
-| `just api-check` | Falla si los tipos versionados no coinciden con el OpenAPI actual                                     |
-| `just check`     | Formato (Prettier), lint (oxlint, con reglas de accesibilidad) y tipos (`tsc`) sin modificar archivos |
-| `just test`      | Tests (Vitest + Testing Library)                                                                      |
-| `just coverage`  | Tests con cobertura (líneas + ramas, falla bajo el 90 %); HTML en `coverage/`                         |
-| `just prepare`   | format + check + coverage + build; correr antes de dar una tarea por terminada                        |
+| Comando          | Qué hace                                                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `just install`   | Dependencias exactas del `package-lock.json` (`npm ci`)                                                                 |
+| `just dev`       | Servidor de desarrollo con recarga en caliente                                                                          |
+| `just api-types` | Regenera `src/api/schema.d.ts` desde el `/openapi.json` de la API en marcha                                             |
+| `just api-check` | Falla si los tipos versionados no coinciden con el OpenAPI actual                                                       |
+| `just check`     | Formato (Prettier), lint (oxlint, con reglas de accesibilidad) y tipos (`tsc`) sin modificar archivos                   |
+| `just test`      | Tests (Vitest + Testing Library)                                                                                        |
+| `just coverage`  | Tests con cobertura (líneas + ramas, falla bajo el 90 %); HTML en `coverage/`                                           |
+| `just prepare`   | format + check + coverage + build; correr antes de dar una tarea por terminada                                          |
+| `just e2e`       | E2E de humo con Playwright (escritorio y móvil) contra la app en marcha con datos de demo; `E2E_BASE_URL` para otra URL |
 
 Las dependencias se añaden con `npm install <paquete>` (o `-D` para desarrollo), nunca editando `package-lock.json` a mano.
 

@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { useReturnFocus } from '@/lib/use-return-focus'
 
 /**
  * Asks before an action, saying its effect. With `typeToConfirm`, the user must
@@ -44,6 +45,7 @@ export function ConfirmDialog({
 }) {
   const [typed, setTyped] = useState('')
   const inputId = useId()
+  const returnFocus = useReturnFocus()
   const ready = !typeToConfirm || typed.trim() === typeToConfirm.text
 
   return (
@@ -55,7 +57,7 @@ export function ConfirmDialog({
       }}
     >
       {trigger && <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>}
-      <AlertDialogContent>
+      <AlertDialogContent {...returnFocus}>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>

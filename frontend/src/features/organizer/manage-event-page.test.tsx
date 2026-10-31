@@ -14,6 +14,7 @@ import {
   organizer,
   page,
 } from '@/test/fixtures'
+import { pickDateTime } from '@/test/date-time'
 import { renderApp } from '@/test/render'
 import { server } from '@/test/server'
 
@@ -229,9 +230,9 @@ describe('ManageEventPage', () => {
     const dialog = await screen.findByRole('dialog')
     const d = within(dialog)
     // Defaults to the first hour of the event, in its zone.
-    expect(d.getByLabelText(es.eventForm.startsAt)).toHaveValue(
-      '2027-03-10T09:00',
-    )
+    expect(
+      d.getByRole('button', { name: es.eventForm.startsAt }),
+    ).toHaveTextContent('10 mar 2027, 9:00')
     await user.type(d.getByLabelText(s.form.title), 'Keynote')
     await user.type(d.getByLabelText(s.form.capacity), '200')
     // The list opens in a portal, outside the dialog.
@@ -280,8 +281,7 @@ describe('ManageEventPage', () => {
     const d = within(await screen.findByRole('dialog'))
     await user.type(d.getByLabelText(s.form.title), 'Late talk')
     await user.type(d.getByLabelText(s.form.capacity), '10')
-    await user.clear(d.getByLabelText(es.eventForm.endsAt))
-    await user.type(d.getByLabelText(es.eventForm.endsAt), '2027-03-10T19:00')
+    await pickDateTime(user, es.eventForm.endsAt, '2027-03-10T19:00')
     await user.click(d.getByRole('button', { name: s.form.save }))
 
     expect(

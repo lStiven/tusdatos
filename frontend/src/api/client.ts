@@ -26,7 +26,8 @@ const auth: Middleware = {
   },
 }
 
-const inspector: Middleware = {
+/** Records every call in the request inspector (also used by the lab's client). */
+export const inspector: Middleware = {
   async onRequest({ id, request }) {
     const url = new URL(request.url)
     recordRequest({

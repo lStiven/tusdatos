@@ -3,3 +3,5 @@ dist
 coverage
 *.local
 *.log
+test-results
+playwright-report

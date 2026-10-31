@@ -41,5 +41,9 @@ test:
 coverage:
     npm run coverage
 
+# Pruebas e2e de humo en Chromium (escritorio y móvil). Requiere la app en marcha con datos de demo: `just dev` aquí y en backend/, y `just seed`; otra URL con E2E_BASE_URL
+e2e:
+    npx playwright test
+
 # Preparar código antes de un commit
 prepare: format check coverage build

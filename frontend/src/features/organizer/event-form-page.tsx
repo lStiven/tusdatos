@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, CalendarX2, Lock, ShieldX } from 'lucide-react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { errorMessage } from '@/api/errors'
 import { FormField, SelectField, TextareaField } from '@/components/form-field'
+import { DateTimeField } from '@/components/date-time-field'
 import { FormNotice } from '@/components/form-notice'
 import { PageHeader } from '@/components/page-header'
 import { StatePanel } from '@/components/state-panel'
@@ -216,6 +217,7 @@ function EventForm({ event }: { event?: Event }) {
       defaultValues: toValues(event),
     })
   const errors = formState.errors
+  const startsAt = useWatch({ control, name: 'starts_at' })
 
   const submit = handleSubmit((values) =>
     save.mutate(toBody(values, venueLocked), {
@@ -282,24 +284,48 @@ function EventForm({ event }: { event?: Event }) {
               <option key={zone}>{zone}</option>
             ))}
           </datalist>
-          <FormField
-            label={es.eventForm.startsAt}
-            type="datetime-local"
-            error={errors.starts_at?.message}
-            {...register('starts_at')}
+          <Controller
+            control={control}
+            name="starts_at"
+            render={({ field }) => (
+              <DateTimeField
+                label={es.eventForm.startsAt}
+                error={errors.starts_at?.message}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
           />
-          <FormField
-            label={es.eventForm.endsAt}
-            type="datetime-local"
-            error={errors.ends_at?.message}
-            {...register('ends_at')}
+          <Controller
+            control={control}
+            name="ends_at"
+            render={({ field }) => (
+              <DateTimeField
+                label={es.eventForm.endsAt}
+                defaultMonth={startsAt}
+                error={errors.ends_at?.message}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
           />
-          <FormField
-            label={es.eventForm.closesAt}
-            type="datetime-local"
-            hint={es.eventForm.closesAtHint}
-            error={errors.registration_closes_at?.message}
-            {...register('registration_closes_at')}
+          <Controller
+            control={control}
+            name="registration_closes_at"
+            render={({ field }) => (
+              <DateTimeField
+                label={es.eventForm.closesAt}
+                defaultMonth={startsAt}
+                hint={es.eventForm.closesAtHint}
+                error={errors.registration_closes_at?.message}
+                optional
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
           />
           <Controller
             control={control}

@@ -24,8 +24,13 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // e2e/ is Playwright's (`just e2e`), against a running app.
+    include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['./src/test/setup.ts'],
     restoreMocks: true,
+    // Screens are driven like a person would (e.g. a date takes several clicks);
+    // with coverage instrumentation a few tests go past the 5 s default.
+    testTimeout: 15_000,
     unstubGlobals: true,
     coverage: {
       provider: 'v8',
@@ -36,6 +41,11 @@ export default defineConfig({
         'src/test/**',
         // Vendored shadcn/ui primitives: library code, not ours.
         'src/components/ui/**',
+        // Lab scenarios and races are acceptance checks run against the real
+        // API from /laboratorio (verified there); their verdict logic, runner
+        // and setup are unit-tested in checks, race-checks, runner and setup.
+        'src/features/lab/scenarios.ts',
+        'src/features/lab/races.ts',
       ],
       reporter: ['text-summary', 'html'],
       thresholds: { lines: 90, branches: 90 },

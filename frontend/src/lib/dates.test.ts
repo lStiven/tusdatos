@@ -4,8 +4,10 @@ import {
   dayKey,
   formatRange,
   formatTime,
+  formatWallTime,
   fromZonedInput,
   isTimeZone,
+  parseWallTime,
   toZonedInput,
 } from './dates'
 
@@ -58,5 +60,15 @@ describe('zoned inputs', () => {
   it('recognises IANA zones', () => {
     expect(isTimeZone('America/Bogota')).toBe(true)
     expect(isTimeZone('Mars/Olympus')).toBe(false)
+  })
+})
+
+describe('wall time', () => {
+  it('splits a value into calendar day and time, and back', () => {
+    const parts = parseWallTime('2027-03-05T18:07')
+    expect(parts?.date.getDate()).toBe(5)
+    expect(parts?.time).toBe('18:07')
+    expect(formatWallTime(parts!)).toBe('2027-03-05T18:07')
+    expect(parseWallTime('')).toBeNull()
   })
 })

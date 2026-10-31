@@ -122,6 +122,14 @@ export const es = {
       CANCELLED: 'Cancelada',
     },
   },
+  dateTime: {
+    placeholder: 'Elegir fecha y hora',
+    time: 'Hora',
+    hour: 'Hora',
+    minute: 'Minutos',
+    clear: 'Quitar',
+    done: 'Listo',
+  },
   pagination: {
     label: 'Paginación',
     range: (from: number, to: number, total: number) =>
@@ -567,10 +575,270 @@ export const es = {
       },
     },
   },
-  comingSoon: {
-    title: 'Próximamente',
-    description: (phase: number) =>
-      `Esta vista llega en la fase ${phase} del frontend. Mientras tanto, puedes usar el inspector o /docs.`,
+  lab: {
+    title: 'Laboratorio',
+    subtitle:
+      'Comprueba las reglas de negocio contra la API real: escenarios guiados con su resultado esperado y carreras con peticiones simultáneas.',
+    adminOnlyTitle: 'El laboratorio necesita una cuenta de administrador',
+    adminOnlyDescription:
+      'Crea cuentas temporales y les da el rol de organizador. Entra con admin@demo.example.com (contraseña demo1234).',
+    dataWarning: (domain: string) =>
+      `Cada ejecución crea cuentas temporales (@${domain}) y eventos de prueba en una fecha lejana, y cancela esos eventos al terminar. Las cuentas no se pueden borrar: úsalo en desarrollo, no en datos reales.`,
+    scenariosTitle: 'Escenarios guiados',
+    scenariosHint:
+      'Cada escenario prepara sus propios datos, así que el resultado no depende del estado de la base de datos. Se detiene en el primer paso que falle: los siguientes dependen de él.',
+    racesTitle: 'Carreras',
+    racesHint:
+      'Lanza todas las peticiones a la vez para comprobar que la concurrencia no rompe las reglas (docs/03). Un 503 es una respuesta válida bajo carga: no guardó nada y reintentar es seguro.',
+    run: 'Ejecutar',
+    runAgain: 'Ejecutar de nuevo',
+    running: 'Ejecutando…',
+    preparing: 'Preparando datos…',
+    columns: {
+      who: 'Quién',
+      action: 'Qué hace',
+      expected: 'Esperado',
+      got: 'Obtenido',
+    },
+    stepStatus: {
+      idle: 'Pendiente',
+      running: 'En curso',
+      pass: 'Correcto',
+      fail: 'Falla',
+      skipped: 'No ejecutado',
+    },
+    summary: (passed: number, total: number, seconds: string) =>
+      `${passed} de ${total} pasos correctos en ${seconds} s`,
+    setupFailed: (what: string, got: string) =>
+      `No se pudo preparar el escenario: ${what} respondió ${got}.`,
+    unexpected: 'Error inesperado (sin respuesta de la API).',
+    noRoom:
+      'No hay ninguna sala activa en una sede activa. Crea una en «Sedes y salas».',
+    setup: {
+      register: (email: string) => `registrar ${email}`,
+      login: (email: string) => `entrar con ${email}`,
+      grant: (email: string) => `dar el rol de organizador a ${email}`,
+      venues: 'listar sedes y salas',
+      event: 'crear el evento de prueba',
+      publish: 'publicar el evento de prueba',
+      session: 'crear la charla de prueba',
+      schedule: 'programar la charla de prueba',
+      earlyRegistration: 'inscribir a a1 antes del cierre',
+      closeRegistration: 'cerrar las inscripciones',
+    },
+    scenarios: {
+      capacity: {
+        title: 'Cupos y lista de espera',
+        description:
+          'Evento con 2 plazas y 4 asistentes: nunca hay más confirmados que plazas y la cola es FIFO (RF-06 a RF-10).',
+        steps: [
+          { who: 'a1', action: 'Se inscribe', expected: '201 CONFIRMED' },
+          { who: 'a2', action: 'Se inscribe', expected: '201 CONFIRMED' },
+          {
+            who: 'a3',
+            action: 'Se inscribe (lleno)',
+            expected: '201 WAITLISTED #1',
+          },
+          { who: 'a4', action: 'Se inscribe', expected: '201 WAITLISTED #2' },
+          {
+            who: 'a3',
+            action: 'Repite la inscripción',
+            expected: '200 WAITLISTED #1: ni duplica ni pierde su puesto',
+          },
+          {
+            who: 'Organizador',
+            action: 'Ve la cola',
+            expected: '200 [a3, a4], en orden de llegada',
+          },
+          {
+            who: 'a1',
+            action: 'Cancela',
+            expected: '200 · a3, el primero de la cola, pasa a CONFIRMED',
+          },
+          {
+            who: 'Organizador',
+            action: 'Baja el aforo a 1',
+            expected: '409 capacity_below_confirmed',
+          },
+          {
+            who: 'Organizador',
+            action: 'Sube el aforo a 3',
+            expected: '200 · a4 pasa a CONFIRMED · 3/3, 0 en espera',
+          },
+          {
+            who: 'a1',
+            action: 'Vuelve a inscribirse',
+            expected: '201 WAITLISTED #1: no recupera su plaza',
+          },
+        ],
+      },
+      interest: {
+        title: 'Interés en charlas',
+        description:
+          'El interés no reserva plaza: solo lo marcan los confirmados y se retira al cancelar (RF-15 y RF-16).',
+        steps: [
+          {
+            who: 'a1',
+            action: 'Se inscribe (1 plaza)',
+            expected: '201 CONFIRMED',
+          },
+          { who: 'a2', action: 'Se inscribe', expected: '201 WAITLISTED #1' },
+          { who: 'a1', action: 'Marca interés en la charla', expected: '204' },
+          {
+            who: 'a1',
+            action: 'Lo marca otra vez',
+            expected: '204 · sigue contando 1 interesado',
+          },
+          {
+            who: 'a2',
+            action: 'Marca interés en espera',
+            expected: '409 registration_not_confirmed',
+          },
+          {
+            who: 'Organizador',
+            action: 'Programa una charla sin sala',
+            expected: '409 session_requires_room',
+          },
+          {
+            who: 'a1',
+            action: 'Cancela su inscripción',
+            expected: '200 · su interés se retira: 0 interesados',
+          },
+          {
+            who: 'a2',
+            action: 'Ya ascendida, marca interés',
+            expected: '204',
+          },
+        ],
+      },
+      deadlines: {
+        title: 'Plazos',
+        description:
+          'Inscribirse se puede hasta el cierre; cancelar, hasta que empieza. a1 se inscribió antes de que el organizador cerrara las inscripciones.',
+        steps: [
+          {
+            who: 'a2',
+            action: 'Se inscribe',
+            expected: '409 registration_closed',
+          },
+          {
+            who: 'a1',
+            action: 'Repite su inscripción',
+            expected:
+              '200 CONFIRMED: un reintento no falla aunque haya cerrado',
+          },
+          {
+            who: 'a1',
+            action: 'Cancela',
+            expected: '200: cancelar se permite hasta el inicio',
+          },
+          {
+            who: 'a1',
+            action: 'Vuelve a inscribirse',
+            expected: '409 registration_closed: es una solicitud nueva',
+          },
+          {
+            who: 'Organizador',
+            action: 'Lo marca como finalizado antes de tiempo',
+            expected: '409 event_not_ended',
+          },
+        ],
+      },
+      ownership: {
+        title: 'Estados, permisos y propiedad',
+        description:
+          'Los borradores son privados, solo el dueño (o un admin) cambia un evento y un evento cancelado no admite inscripciones (RF-02, RF-03, RF-05, HU-01).',
+        steps: [
+          {
+            who: 'Organizador 2',
+            action: 'Abre el borrador de otro',
+            expected: '404 event_not_found: no revela que existe',
+          },
+          {
+            who: 'Organizador 1',
+            action: 'Publica su borrador sin sede',
+            expected: '409 event_requires_venue',
+          },
+          {
+            who: 'Organizador 2',
+            action: 'Edita el evento publicado de otro',
+            expected: '403 not_event_owner',
+          },
+          { who: 'Admin', action: 'Edita ese mismo evento', expected: '200' },
+          {
+            who: 'Organizador 1',
+            action: 'Asigna sede al borrador y lo publica',
+            expected: '200 · 200',
+          },
+          {
+            who: 'Organizador 1 · a1',
+            action: 'Cancela el evento; a1 intenta inscribirse',
+            expected: '200 · 409 event_not_open',
+          },
+        ],
+      },
+    },
+    races: {
+      users: 'Peticiones simultáneas',
+      usersHint: (min: number, max: number) => `Entre ${min} y ${max}.`,
+      capacity: 'Plazas del evento',
+      capacityHint: 'Si son menos que las peticiones, habrá cola.',
+      progress: {
+        accounts: (done: number, total: number) =>
+          `Creando cuentas temporales una a una: ${done} de ${total}…`,
+        preparing: 'Preparando el evento…',
+        firing: 'Lanzando todas las peticiones a la vez…',
+        verifying: 'Comprobando el resultado en la API…',
+      },
+      responses: 'Respuestas',
+      checksTitle: 'Comprobaciones',
+      duration: (ms: number) => `Todas respondidas en ${ms} ms`,
+      slowest: (ms: number) => `la más lenta, ${ms} ms`,
+      verdict: {
+        pass: 'Se cumplen las reglas',
+        fail: 'Alguna regla no se cumple',
+      },
+      list: {
+        lastSeat: {
+          title: 'La última plaza (C-01)',
+          description:
+            'N personas se inscriben en el mismo instante en un evento con menos plazas: nadie se queda con una plaza de más y la cola queda numerada sin huecos.',
+        },
+        retries: {
+          title: 'Reintentos del mismo usuario (C-02)',
+          description:
+            'Una persona envía la misma inscripción N veces a la vez (doble clic, red inestable): queda una sola inscripción.',
+        },
+        sameRoom: {
+          title: 'La misma sala a la misma hora',
+          description:
+            'N charlas intentan reservar la misma sala a la misma hora a la vez: solo una lo consigue; el resto, 409 room_not_available.',
+        },
+      },
+      checks: {
+        neverOversold: 'Nunca más confirmados que plazas',
+        seatsFilled: 'Se ocupan todas las plazas posibles',
+        queueContiguous: 'La cola va de 1 en 1, sin huecos ni repetidos',
+        onePerRequest: 'Una inscripción por petición guardada',
+        noUnexpected: 'Ninguna respuesta inesperada',
+        oneRegistration: 'Queda una sola inscripción',
+        oneCreated:
+          'Solo una respuesta crea (201); el resto devuelve la misma (200)',
+        oneBooking: 'Solo una charla reserva la sala',
+        othersRejected: 'El resto recibe 409 room_not_available (o 503)',
+      },
+      detail: {
+        confirmed: (confirmed: number, expected: number) =>
+          `${confirmed} confirmados (máx. ${expected})`,
+        saved: (registrations: number, saved: number) =>
+          `${registrations} inscripciones para ${saved} peticiones guardadas`,
+        created: (created: number, same: number) =>
+          `${created} × 201 · ${same} × 200`,
+        booked: (scheduled: number, won: number) =>
+          `${scheduled} programada · ${won} × 200`,
+      },
+      failed: (message: string) => `La carrera no pudo completarse: ${message}`,
+    },
   },
   forbidden: {
     title: 'No tienes permiso para ver esto',

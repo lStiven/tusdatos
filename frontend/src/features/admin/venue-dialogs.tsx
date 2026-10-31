@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { es } from '@/i18n/es'
+import { useReturnFocus } from '@/lib/use-return-focus'
 import {
   formLevelError,
   showFieldErrors,
@@ -37,9 +38,10 @@ function FormDialog({
   description: string
   children: React.ReactNode
 }) {
+  const returnFocus = useReturnFocus()
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent {...returnFocus}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

@@ -128,3 +128,24 @@ export function isTimeZone(name: string) {
     return false
   }
 }
+
+export interface WallTime {
+  date: Date
+  time: string
+}
+
+/** `YYYY-MM-DDTHH:mm` (wall time in the event's zone) ↔ calendar day + time. */
+export function parseWallTime(value: string): WallTime | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value)
+  if (!match) return null
+  const [, year, month, day, hour, minute] = match.map(Number) as number[]
+  return {
+    // Only the calendar day matters: local midnight is fine for the picker.
+    date: new Date(year!, month! - 1, day),
+    time: `${pad(hour!)}:${pad(minute!)}`,
+  }
+}
+
+export function formatWallTime({ date, time }: WallTime) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${time}`
+}

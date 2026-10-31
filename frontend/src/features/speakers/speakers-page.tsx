@@ -27,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { es } from '@/i18n/es'
 import { formLevelError, showFieldErrors } from '@/lib/form-errors'
 import { useListParams } from '@/lib/use-list-params'
+import { useReturnFocus } from '@/lib/use-return-focus'
 import {
   useDeleteSpeaker,
   useSaveSpeaker,
@@ -50,6 +51,7 @@ export function SpeakersPage() {
   const remove = useDeleteSpeaker()
   // `null`: closed; `'new'`: creating; a speaker: editing them.
   const [editing, setEditing] = useState<Speaker | 'new' | null>(null)
+  const returnFocus = useReturnFocus()
 
   const setName = useCallback(
     (value: string) =>
@@ -169,7 +171,7 @@ export function SpeakersPage() {
         open={editing !== null}
         onOpenChange={(open) => !open && setEditing(null)}
       >
-        <DialogContent>
+        <DialogContent {...returnFocus}>
           <DialogHeader>
             <DialogTitle>
               {editing === 'new' ? t.form.createTitle : t.form.editTitle}

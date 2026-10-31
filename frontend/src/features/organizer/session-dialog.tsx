@@ -9,6 +9,7 @@ import {
   SelectField,
   TextareaField,
 } from '@/components/form-field'
+import { DateTimeField } from '@/components/date-time-field'
 import { FormNotice } from '@/components/form-notice'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,6 +30,7 @@ import {
   type CodeFields,
 } from '@/lib/form-errors'
 import { fromZonedInput, toZonedInput } from '@/lib/dates'
+import { useReturnFocus } from '@/lib/use-return-focus'
 import { useRooms, useSaveSession, type SessionInput } from './api'
 
 const f = es.sessionsAdmin.form
@@ -131,9 +133,13 @@ export function SessionDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const returnFocus = useReturnFocus()
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent
+        {...returnFocus}
+        className="max-h-[90svh] overflow-y-auto sm:max-w-2xl"
+      >
         <DialogHeader>
           <DialogTitle>{session ? f.editTitle : f.createTitle}</DialogTitle>
           <DialogDescription>
@@ -220,17 +226,31 @@ function SessionForm({
           {...register('description')}
         />
       </div>
-      <FormField
-        label={es.eventForm.startsAt}
-        type="datetime-local"
-        error={errors.starts_at?.message}
-        {...register('starts_at')}
+      <Controller
+        control={control}
+        name="starts_at"
+        render={({ field }) => (
+          <DateTimeField
+            label={es.eventForm.startsAt}
+            error={errors.starts_at?.message}
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+          />
+        )}
       />
-      <FormField
-        label={es.eventForm.endsAt}
-        type="datetime-local"
-        error={errors.ends_at?.message}
-        {...register('ends_at')}
+      <Controller
+        control={control}
+        name="ends_at"
+        render={({ field }) => (
+          <DateTimeField
+            label={es.eventForm.endsAt}
+            error={errors.ends_at?.message}
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+          />
+        )}
       />
       <Controller
         control={control}

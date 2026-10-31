@@ -2,11 +2,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.modules.events.schemas import EventSummary
 from app.modules.registrations.models import RegistrationStatus
-from app.modules.users.schemas import UserSummary as Attendee
+from app.modules.users.schemas import UserSummary
 
 
-class RegistrationRead(BaseModel):
+class RegistrationBase(BaseModel):
     id: int = Field(description="Registration id", examples=[81])
     event_id: int = Field(description="Event", examples=[42])
     status: RegistrationStatus = Field(
@@ -30,8 +31,24 @@ class RegistrationRead(BaseModel):
     )
 
 
-class EventRegistrationRead(RegistrationRead):
-    user: Attendee = Field(description="Who registered")
+class RegistrationRead(RegistrationBase):
+    event: EventSummary = Field(
+        description="Event of the registration. Its `status` is the event's, "
+        "not the registration's",
+        examples=[
+            {
+                "id": 42,
+                "title": "PyCon Colombia",
+                "status": "PUBLISHED",
+                "starts_at": "2026-11-20T14:00:00Z",
+                "timezone": "America/Bogota",
+            }
+        ],
+    )
+
+
+class EventRegistrationRead(RegistrationBase):
+    user: UserSummary = Field(description="Who registered")
 
 
 class Occupancy(BaseModel):

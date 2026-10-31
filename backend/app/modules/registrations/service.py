@@ -2,6 +2,7 @@ from sqlmodel import Session
 
 from app.modules.events import service as events_service
 from app.modules.events.models import Event, EventStatus
+from app.modules.events.schemas import EventSummary
 from app.modules.registrations import repository as registrations_repository
 from app.modules.registrations.exceptions import (
     CancellationClosedError,
@@ -15,10 +16,11 @@ from app.modules.registrations.models import (
     RegistrationStatus,
 )
 from app.modules.registrations.schemas import (
-    Attendee,
     EventRegistrationRead,
     Occupancy,
+    RegistrationBase,
     RegistrationRead,
+    UserSummary,
 )
 from app.modules.sessions import repository as sessions_repository
 from app.modules.users.models import User
@@ -119,7 +121,10 @@ def list_mine(
     rows, total = registrations_repository.list_for_user(
         session, id_of(user), status=status, limit=page.limit, offset=page.offset
     )
-    return [_to_read(registration, position) for registration, position in rows], total
+    return [
+        _to_read(registration, event, position)
+        for registration, event, position in rows
+    ], total
 
 
 def list_for_event(
@@ -136,8 +141,10 @@ def list_for_event(
     )
     items = [
         EventRegistrationRead(
-            **_to_read(registration, position).model_dump(),
-            user=Attendee(id=id_of(user), email=user.email, full_name=user.full_name),
+            **_to_base(registration, position).model_dump(),
+            user=UserSummary(
+                id=id_of(user), email=user.email, full_name=user.full_name
+            ),
         )
         for registration, position, user in rows
     ]
@@ -183,8 +190,8 @@ def _read(session: Session, event_id: int, user: User) -> RegistrationRead:
     return _to_read(*row)
 
 
-def _to_read(registration: EventRegistration, position: int | None) -> RegistrationRead:
-    return RegistrationRead(
+def _to_base(registration: EventRegistration, position: int | None) -> RegistrationBase:
+    return RegistrationBase(
         id=id_of(registration),
         event_id=registration.event_id,
         status=registration.status,
@@ -192,4 +199,13 @@ def _to_read(registration: EventRegistration, position: int | None) -> Registrat
         requested_at=registration.requested_at,  # pyright: ignore[reportArgumentType]
         confirmed_at=registration.confirmed_at,
         cancelled_at=registration.cancelled_at,
+    )
+
+
+def _to_read(
+    registration: EventRegistration, event: Event, position: int | None
+) -> RegistrationRead:
+    return RegistrationRead(
+        **_to_base(registration, position).model_dump(),
+        event=EventSummary.model_validate(event),
     )

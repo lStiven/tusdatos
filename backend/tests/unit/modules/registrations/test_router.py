@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.modules.auth.dependencies import get_current_user
+from app.modules.events.schemas import EventStatus, EventSummary
 from app.modules.registrations import service as registrations_service
 from app.modules.registrations.exceptions import RegistrationClosedError
 from app.modules.registrations.models import RegistrationStatus
@@ -21,6 +22,13 @@ REGISTRATION = RegistrationRead(
     requested_at=datetime(2026, 11, 1, 15, tzinfo=UTC),
     confirmed_at=None,
     cancelled_at=None,
+    event=EventSummary(
+        id=42,
+        title="Test Event",
+        status=EventStatus.PUBLISHED,
+        starts_at=datetime(2026, 11, 10, 15, tzinfo=UTC),
+        timezone="America/Bogota",
+    ),
 )
 REGISTRATION_JSON = REGISTRATION.model_dump(mode="json")
 
@@ -93,6 +101,18 @@ def test_lists_pass_the_status_filter_and_paginate(
     assert response.json() == {"items": [], "total": 0, "limit": 1, "offset": 0}
 
 
+def test_my_registrations_include_the_event(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        registrations_service, "list_mine", lambda *a, **k: ([REGISTRATION], 1)
+    )
+
+    response = client.get("/api/v1/users/me/registrations")
+
+    assert response.json()["items"] == [REGISTRATION_JSON]
+
+
 def test_rejects_an_unknown_status_filter(client: TestClient) -> None:
     response = client.get("/api/v1/users/me/registrations?status=PENDING")
 
@@ -117,3 +137,13 @@ def test_every_operation_is_protected_and_documented(client: TestClient) -> None
     assert {"200", "201", "404", "409", "503"} <= set(register["responses"])
     listing = operations[("get", "/api/v1/events/{event_id}/registrations")]
     assert "not_event_owner" in listing["responses"]["403"]["description"]
+
+
+def test_openapi_requires_the_event_only_in_my_registrations(
+    client: TestClient,
+) -> None:
+    schemas = client.get("/openapi.json").json()["components"]["schemas"]
+
+    assert "event" in schemas["RegistrationRead"]["required"]
+    assert "event" not in schemas["EventRegistrationRead"]["properties"]
+    assert "RegistrationBase" not in schemas

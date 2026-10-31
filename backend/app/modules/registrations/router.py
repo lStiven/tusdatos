@@ -172,7 +172,14 @@ def list_my_registrations(
     page: PageParamsDep,
     status: StatusFilter = None,
 ) -> Page[RegistrationRead]:
-    """The current user's registrations, newest request first."""
+    """The current user's registrations with their event, newest request first.
+
+    **Rules**
+    - Each item carries a summary of its event, so no extra request is needed
+      to show its title or date. Show times in the event's `timezone`.
+    - `status` is the registration's status (and the filter's); `event.status` is
+      the event's own status.
+    """
     items, total = registrations_service.list_mine(
         session, user, status=status, page=page
     )

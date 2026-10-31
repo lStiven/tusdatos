@@ -6,6 +6,7 @@ from sqlmodel import Session
 
 from app.modules.events import service as events_service
 from app.modules.events.models import Event, EventStatus
+from app.modules.events.schemas import EventSummary
 from app.modules.registrations import repository as registrations_repository
 from app.modules.registrations import service as registrations_service
 from app.modules.registrations.models import (
@@ -15,8 +16,10 @@ from app.modules.registrations.models import (
 )
 from app.modules.sessions import repository as sessions_repository
 from app.modules.users.models import User
+from app.modules.users.schemas import UserSummary
 from app.shared.datetimes import utc_now
 from app.shared.exceptions import AppError
+from app.shared.pagination import PageParams
 
 USER = User(id=1, email="ana@example.com", password_hash="hash", full_name="Ana")
 
@@ -77,7 +80,7 @@ class Fake:
         patch(
             registrations_repository,
             "get_with_position",
-            lambda *a: (self.registration, None),
+            lambda *a: (self.registration, self.event, None),
         )
         patch(
             sessions_repository,
@@ -272,6 +275,51 @@ def test_cancelling_twice_returns_the_cancelled_registration(fake: Fake) -> None
     assert registration.status == RegistrationStatus.CANCELLED
     assert fake.history == []
     fake.session.commit.assert_not_called()
+
+
+def test_my_registrations_carry_the_event_summary(
+    fake: Fake, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake.registration = make_registration(RegistrationStatus.WAITLISTED, 3)
+    monkeypatch.setattr(
+        registrations_repository,
+        "list_for_user",
+        lambda *a, **k: ([(fake.registration, fake.event, 2)], 1),
+    )
+
+    items, total = registrations_service.list_mine(
+        fake.session, USER, status=None, page=PageParams()
+    )
+
+    assert total == 1
+    assert items[0].waitlist_position == 2
+    assert items[0].event == EventSummary(
+        id=42,
+        title="PyCon",
+        status=EventStatus.PUBLISHED,
+        starts_at=fake.event.starts_at,
+        timezone="America/Bogota",
+    )
+
+
+def test_event_registrations_carry_the_attendee_but_not_the_event(
+    fake: Fake, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake.registration = make_registration(RegistrationStatus.CONFIRMED)
+    monkeypatch.setattr(events_service, "get_managed_event", lambda *a, **k: fake.event)
+    monkeypatch.setattr(
+        registrations_repository,
+        "list_for_event",
+        lambda *a, **k: ([(fake.registration, None, USER)], 1),
+    )
+
+    items, total = registrations_service.list_for_event(
+        fake.session, USER, 42, status=None, page=PageParams()
+    )
+
+    assert total == 1
+    assert items[0].user == UserSummary(id=1, email=USER.email, full_name="Ana")
+    assert "event" not in items[0].model_dump()
 
 
 def test_occupancy_derives_the_figures_from_the_counts(

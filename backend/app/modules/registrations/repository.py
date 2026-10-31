@@ -3,6 +3,7 @@ from sqlalchemy import select as sa_select
 from sqlalchemy.orm import aliased
 from sqlmodel import Session, col, func, select
 
+from app.modules.events.models import Event
 from app.modules.registrations.models import (
     EventRegistration,
     RegistrationReason,
@@ -14,7 +15,7 @@ from app.shared.models import id_of
 
 _ACTIVE = (RegistrationStatus.CONFIRMED, RegistrationStatus.WAITLISTED)
 
-type WithPosition = tuple[EventRegistration, int | None]
+type WithEventAndPosition = tuple[EventRegistration, Event, int | None]
 
 
 def get_for_user(
@@ -175,12 +176,16 @@ def _waitlist_position() -> ColumnElement[int | None]:
 
 def get_with_position(
     session: Session, event_id: int, user_id: int
-) -> WithPosition | None:
-    statement = select(EventRegistration, _waitlist_position()).where(
-        EventRegistration.event_id == event_id, EventRegistration.user_id == user_id
+) -> WithEventAndPosition | None:
+    statement = (
+        select(EventRegistration, Event, _waitlist_position())
+        .join(Event, col(Event.id) == col(EventRegistration.event_id))
+        .where(
+            EventRegistration.event_id == event_id, EventRegistration.user_id == user_id
+        )
     )
     row = session.exec(statement).first()
-    return (row[0], row[1]) if row else None
+    return (row[0], row[1], row[2]) if row else None
 
 
 def list_for_user(
@@ -190,19 +195,20 @@ def list_for_user(
     status: RegistrationStatus | None,
     limit: int,
     offset: int,
-) -> tuple[list[WithPosition], int]:
+) -> tuple[list[WithEventAndPosition], int]:
     filters = [EventRegistration.user_id == user_id]
     if status is not None:
         filters.append(EventRegistration.status == status)
     total = session.exec(select(func.count()).where(*filters)).one()
     page = (
-        select(EventRegistration, _waitlist_position())
+        select(EventRegistration, Event, _waitlist_position())
+        .join(Event, col(Event.id) == col(EventRegistration.event_id))
         .where(*filters)
         .order_by(col(EventRegistration.requested_at).desc(), col(EventRegistration.id))
         .limit(limit)
         .offset(offset)
     )
-    return [(row[0], row[1]) for row in session.exec(page).all()], total
+    return [(row[0], row[1], row[2]) for row in session.exec(page).all()], total
 
 
 def list_for_event(

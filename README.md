@@ -1,105 +1,304 @@
-# Mis Eventos — Sistema de gestión de eventos
+<div align="center">
 
-> Estado: MVP en desarrollo · Última actualización: 2026-10-29
+# Mis Eventos · Full-Stack Demo
+### Event Management System · RESTful API + Interactive Web UI
 
-**Mis Eventos** es una plataforma API-first para organizar eventos, administrar conferencias y salas, gestionar inscripciones con capacidad limitada y lista de espera, y ofrecer datos confiables a organizadores y asistentes.
+**Plataforma API-first de alta consistencia para la gestión de eventos, conferencias, control de aforos y listas de espera concurrentes, acompañada de una interfaz gráfica y un laboratorio de pruebas en vivo.**
+
+<br/>
+
+[![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)](#)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](#)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](#)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](#)
+[![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](#)
+[![Nginx](https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white)](#)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](#)
+
+[![Branch](https://img.shields.io/badge/Rama_Actual-demo--ui_(Backend_+_Frontend)-8250DF?style=flat-square)](#)
+[![Core Branch](https://img.shields.io/badge/Rama_Principal-master_(Solo_Backend)_→-0969da?style=flat-square)](https://github.com/lStiven/tusdatos/tree/master)
+[![Status](https://img.shields.io/badge/Estado-MVP_Completado-2ea44f?style=flat-square)](#estado-del-proyecto)
+
+<br/>
+
+[**Levantar Demo en 1 Minuto**](#inicio-rápido-stack-completo) · [**Arquitectura Full-Stack**](#arquitectura-del-sistema) · [**Guía Backend**](backend/README.md) · [**Guía Frontend**](frontend/README.md)
+
+</div>
+
+---
+
+> [!IMPORTANT]
+> **Entorno de Demostración Interactiva (`demo-ui`)**
+> Esta rama extiende la implementación oficial del backend ([rama `master`](https://github.com/lStiven/tusdatos/tree/master)) incorporando una **Single Page Application (SPA)** en React y TypeScript. Su propósito es permitir la evaluación visual de todos los flujos por rol (Asistente, Organizador, Administrador) e incluye un **Laboratorio de Concurrencia** que pone a prueba las invariantes del backend contra la API real.
 
 ## ¿Qué problema resuelve?
 
-La organización manual mediante hojas de cálculo, correos y documentos dispersos dificulta conocer los cupos reales, coordinar charlas y salas, controlar permisos y ofrecer una inscripción simple. El sistema centraliza los datos en PostgreSQL, automatiza las reglas de negocio y expone operaciones a través de una API REST con FastAPI.
+La organización manual de eventos mediante hojas de cálculo, correos y formularios aislados provoca sobrecupos (*overbooking*), cruces de horarios en salas o ponentes, y falta de trazabilidad en las listas de espera.
 
-## Documentación
+**Mis Eventos** centraliza el modelo de datos en **PostgreSQL**, protege las reglas de negocio estrictamente en el backend con **FastAPI** bajo un diseño **API-first**, y expone un cliente web tipado de extremo a extremo (generado automáticamente desde el contrato **OpenAPI**) servido mediante **Nginx**.
 
-Cada tipo de documentación responde a una pregunta distinta y vive en un solo lugar:
+---
 
-| Pregunta | Dónde |
-|---|---|
-| ¿Cómo configuro, ejecuto y pruebo el backend? | [backend/README.md](backend/README.md) |
-| ¿Cómo ejecuto y desarrollo el frontend? | [frontend/README.md](frontend/README.md) |
-| ¿Cómo llamo a un endpoint, qué reglas aplica y qué errores devuelve? | OpenAPI de la API en marcha: [`/docs`](http://localhost:8000/docs) (Swagger) o [`/redoc`](http://localhost:8000/redoc). Se genera desde el código |
-| ¿Cómo funcionan la autenticación, los errores y la paginación? | Portada de `/docs` |
-| ¿Por qué está diseñado así? | `docs/`, abajo |
+## Inicio Rápido (Stack Completo)
 
-1. [Problema, solución y alcance del MVP](docs/01-problema-solucion-y-alcance.md): contexto, actores, requisitos, flujos, reglas y criterios de aceptación.
-2. [Arquitectura técnica, Dev Containers y despliegue](docs/02-arquitectura-y-contenedores.md): separación de entornos, contenedores, base de datos, seguridad y operaciones.
-3. [Concurrencia, cupos y lista de espera](docs/03-concurrencia-cupos-y-lista-de-espera.md): cómo se evita el sobrecupo y se ordena la lista de espera.
-4. [Modelo de dominio y base de datos](docs/04-modelo-dominio-y-base-de-datos.md): tablas, restricciones, bloqueos y reglas entre tablas.
+Un único flujo con Docker Compose construye y orquesta la base de datos, ejecuta las migraciones con Alembic, levanta la API y sirve el frontend en producción local.
 
-## Stack decidido
+### 1. Desplegar los contenedores
 
-- **Backend:** Python 3.14, FastAPI, SQLModel/SQLAlchemy, PostgreSQL.
-- **Frontend:** React, Vite y TypeScript, con un cliente generado desde el OpenAPI de la API; nginx lo sirve en la imagen.
-- **Gestión:** uv, Alembic, pytest, Swagger/OpenAPI.
-- **Desarrollo reproducible:** Dev Containers + Docker Compose.
-- **Ejecución local:** imágenes Docker de la API y del frontend + Docker Compose.
-- **Arquitectura de aplicación:** monolito modular, API REST.
+```bash
+# 1. Generar backend/.env con JWT_SECRET_KEY criptográfica (no sobrescribe si ya existe)
+python3 scripts/bootstrap_env.py
 
-## Principios de diseño
+# 2. Construir y levantar PostgreSQL + Migraciones + API + Frontend Web
+docker compose up --build -d
 
-- Las reglas de negocio se aplican en el backend; no se delegan al frontend.
-- La inscripción confirmada al **evento** reserva un cupo. La manifestación de interés por una **charla** no reserva un asiento.
-- Cuando se llena el evento, la solicitud entra en lista de espera; las promociones mantienen el orden de llegada.
-- Un organizador únicamente modifica sus eventos; un administrador puede administrar cualquier evento y charla.
-- Las salas no pueden asignarse a sesiones superpuestas y su capacidad debe ser suficiente para la capacidad configurada para la sesión.
-- Se permite indicar interés por charlas simultáneas, porque este registro tiene finalidad estadística.
-- El mismo sistema debe ejecutarse en desarrollo, pruebas y producción mediante configuración externa; **Dev Container no es un mecanismo de despliegue**.
+# 3. Verificar que los servicios 'api' y 'web' reporten estado «healthy»
+docker compose ps
+```
 
-## Estructura del repositorio
+### 2. Poblar datos de demostración (Recomendado)
+
+Elige cómo deseas autenticarte en la plataforma:
+
+```bash
+# OPCIÓN A (Inmediata): Sembrar eventos, charlas, salas y usuarios de prueba
+docker compose exec api python -m app.modules.demo.cli seed
+```
+> Al ejecutar el `seed`, la pantalla de inicio de sesión en **`http://localhost:8080`** habilitará **botones de acceso en 1 clic** para entrar como *Asistente*, *Organizadora* o *Administrador* (contraseña general: `demo1234`).
+
+```bash
+# OPCIÓN B (Manual): Crear únicamente tu propio usuario Administrador desde cero
+docker compose exec api python -m app.modules.auth.cli create-admin \
+  --email admin@example.com \
+  --full-name "Admin"
+```
+
+### 3. Puntos de Acceso Locales
+
+| Servicio | URL Local | Descripción |
+|:---|:---|:---|
+| **Aplicación Web (UI)** | [`http://localhost:8080`](http://localhost:8080) | Interfaz gráfica por roles + Laboratorio de reglas y concurrencia. |
+| **Swagger UI (OpenAPI)** | [`http://localhost:8000/docs`](http://localhost:8000/docs) | Documentación interactiva de endpoints, autenticación, errores y paginación. |
+| **ReDoc** | [`http://localhost:8000/redoc`](http://localhost:8000/redoc) | Referencia técnica de esquemas y contratos de la API REST. |
+
+<details>
+<summary><b>🛠️ Solución de problemas y casos de uso frecuentes (Puertos ocupados, reinicio de BD, logs)</b></summary>
+<br/>
+
+| Escenario | Comando / Solución |
+|:---|:---|
+| **Acabo de clonar el repo** | Ejecuta los 3 comandos del paso 1. La primera construcción descarga las imágenes base e instala dependencias de Python (`uv`) y Node. |
+| **Actualicé el código (`git pull`)** | Ejecuta `docker compose up --build -d`. Reconstruye solo las capas modificadas conservando los datos de PostgreSQL. |
+| **Puertos `8080` u `8000` ocupados** | Ejecuta `WEB_PORT=8081 API_PORT=8001 docker compose up --build -d`. El frontend no se rompe porque **Nginx** enruta hacia la API usando la red interna de Docker. |
+| **Quiero reiniciar la base de datos a cero** | Ejecuta `docker compose down -v` (elimina volúmenes) y vuelve a levantar con `docker compose up --build -d`. |
+| **Inspeccionar fallos de arranque** | Revisa los registros específicos con `docker compose logs migrate`, `docker compose logs api` o `docker compose logs web`. |
+
+</details>
+
+---
+
+## Arquitectura del Sistema
+
+El sistema opera bajo un **monolito modular** en el backend consumido por una **SPA en React/TypeScript**. El acoplamiento de contratos se mantiene sincronizado generando el cliente HTTP del frontend directamente desde la especificación OpenAPI de FastAPI, mientras que **Nginx** actúa como servidor web y *reverse proxy* dentro de la red de contenedores.
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0d1117', 'primaryTextColor': '#f0f6fc', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'secondaryColor': '#161b22', 'tertiaryColor': '#21262d'}}}%%
+flowchart TB
+    subgraph Browser["Entorno del Usuario (Navegador)"]
+        UI["React 18 + Vite + TypeScript<br/>Vistas por Rol & Laboratorio de Concurrencia"]
+        SDK["Cliente HTTP Tipado<br/>Autogenerado desde OpenAPI"]
+        UI --> SDK
+    end
+
+    subgraph DockerNet["Red Interna de Docker Compose"]
+        Nginx["Nginx (Puerto 8080)<br/>Servidor Estático SPA + Reverse Proxy"]
+
+        subgraph Backend["Backend Core · FastAPI (Puerto 8000)"]
+            direction TB
+            Router["Enrutadores REST & Esquemas OpenAPI"]
+            Auth["Middleware JWT & Control RBAC"]
+
+            subgraph Domain["Módulos de Dominio (API-First)"]
+                direction LR
+                ModEvents["Eventos, Sedes<br/>y Salas"]
+                ModTalks["Charlas y Validador<br/>de Horarios"]
+                ModReg["Inscripciones y<br/>Waitlist FIFO"]
+                ModMetrics["Interés y<br/>Métricas"]
+            end
+
+            ORM["Transacciones ACID · SQLModel / SQLAlchemy"]
+        end
+
+        subgraph Storage["Persistencia"]
+            Postgres[("PostgreSQL<br/>Locks & Integridad")]
+            Alembic["Contenedor Migrate<br/>Alembic DDL"]
+        end
+    end
+
+    SDK ==>|HTTP / JSON| Nginx
+    Nginx ==>|Proxy Interno| Router
+    Router --> Auth
+    Auth --> ModEvents & ModTalks & ModReg & ModMetrics
+    ModEvents & ModTalks & ModReg & ModMetrics --> ORM
+    ORM ==> Postgres
+    Alembic -.->|Aplica esquema al iniciar| Postgres
+
+    classDef frontend fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#eef2ff;
+    classDef proxy fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#ecfdf5;
+    classDef api fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+    classDef domain fill:#1f2937,stroke:#60a5fa,stroke-width:2px,color:#f9fafb;
+    classDef db fill:#7c2d12,stroke:#fb923c,stroke-width:2px,color:#fff7ed;
+
+    class UI,SDK frontend;
+    class Nginx proxy;
+    class Router,Auth,ORM api;
+    class ModEvents,ModTalks,ModReg,ModMetrics domain;
+    class Postgres,Alembic db;
+```
+
+### Flujo Transaccional: Control de Cupos y Lista de Espera
+
+La interfaz gráfica incluye un laboratorio que dispara peticiones concurrentes hacia la API para demostrar cómo el backend previene condiciones de carrera (*race conditions*) y gestiona la cola de espera:
+
+```mermaid
+%%{init: {
+  'theme': 'dark',
+  'themeVariables': {
+    'actorBkg': '#1f6feb',
+    'actorTextColor': '#ffffff',
+    'actorBorder': '#58a6ff',
+    'actorLineColor': '#8b949e',
+    'signalColor': '#58a6ff',
+    'signalTextColor': '#f0f6fc',
+    'labelBoxBkgColor': '#21262d',
+    'labelBoxBorderColor': '#30363d',
+    'labelTextColor': '#f0f6fc',
+    'loopTextColor': '#f0f6fc',
+    'noteBkgColor': '#3b2300',
+    'noteTextColor': '#f0f6fc',
+    'noteBorderColor': '#d29922'
+  }
+}}%%
+sequenceDiagram
+    autonumber
+    actor User as Cliente Web (SPA)
+    participant API as FastAPI (Endpoints)
+    participant Svc as Servicio de Dominio
+    participant DB as PostgreSQL (ACID)
+
+    rect rgb(13, 27, 42)
+    note right of User: Escenario A: Inscripción bajo Concurrencia
+    User->>API: POST /events/{id}/register
+    API->>Svc: Procesar solicitud
+    Svc->>DB: BEGIN + Bloqueo de control de capacidad
+    DB-->>Svc: Cupos confirmados actuales
+
+    alt Hay cupos disponibles (Confirmados menor a Capacidad)
+        Svc->>DB: INSERT Inscripción (CONFIRMADA)
+        DB-->>Svc: Commit exitoso
+        Svc-->>API: 201 Created (Cupo Reservado)
+    else Aforo al 100% (Capacidad Agotada)
+        Svc->>DB: INSERT en Lista de Espera (Orden FIFO)
+        DB-->>Svc: Commit exitoso
+        Svc-->>API: 202 Accepted (En Lista de Espera)
+    end
+    API-->>User: Actualiza estado en UI
+    end
+
+    rect rgb(10, 38, 28)
+    note right of User: Escenario B: Cancelación y Promoción Automática
+    User->>API: DELETE /events/{id}/register (Cancelar)
+    API->>Svc: Ejecutar baja e inspeccionar cola
+    Svc->>DB: BEGIN Transaction
+    Svc->>DB: Marcar inscripción como CANCELADA
+    Svc->>DB: Seleccionar 1er candidato en espera (FIFO)
+    opt Existe usuario en Lista de Espera
+        Svc->>DB: Promover estado: EN_ESPERA a CONFIRMADA
+    end
+    Svc->>DB: COMMIT Transaction
+    Svc-->>API: 200 OK (Promoción atómica completada)
+    API-->>User: Refleja cupo reasignado en UI
+    end
+```
+
+---
+
+## Principios de Diseño e Invariantes de Negocio
+
+El frontend actúa exclusivamente como capa de presentación y experiencia de usuario; **ninguna regla de negocio se delega al navegador**:
+
+<details open>
+<summary><b>1. Separación entre Cupo de Evento e Interés por Charla</b></summary>
+<br/>
+
+- **Inscripción al evento:** Reserva un cupo real sobre la capacidad máxima del evento. Al llenarse, las nuevas solicitudes ingresan automáticamente a la lista de espera y se promueven por estricto orden de llegada (FIFO).
+- **Interés en charlas:** Permite a los asistentes marcar las sesiones a las que planean asistir (incluso si ocurren en horarios simultáneos). Su finalidad es estadística y analítica para los organizadores, por lo que **no bloquea asientos físicos**.
+</details>
+
+<details>
+<summary><b>2. Prevención de Solapes en Salas y Ponentes</b></summary>
+<br/>
+
+- **Exclusión temporal de salas:** Una sala no puede asignarse a dos sesiones cuyos horarios se superpongan.
+- **Capacidad física:** El aforo de la sala debe ser mayor o igual a la capacidad configurada para la sesión.
+- **Disponibilidad de ponentes:** El backend impide asignar al mismo ponente en dos charlas simultáneas.
+</details>
+
+<details>
+<summary><b>3. Permisos por Rol (RBAC) y Paridad de Entornos</b></summary>
+<br/>
+
+- **Propiedad estricta:** Un *Organizador* únicamente puede modificar o administrar los eventos que le pertenecen. El rol *Administrador* posee control global sobre cualquier evento, catálogo y charla.
+- **Inmutabilidad de despliegue:** El sistema se comporta igual en desarrollo, pruebas y producción mediante inyección de variables de entorno. Los *Dev Containers* se utilizan como entorno reproducible de desarrollo, no como artefacto de despliegue.
+</details>
+
+---
+
+## Mapa de Documentación
+
+Cada documento responde a una inquietud específica de ingeniería y vive en una única ubicación:
+
+| ¿Qué necesitas consultar? | Ubicación Directa |
+|:---|:---|
+| **¿Cómo configuro, ejecuto y corro tests en el backend?** | [**`backend/README.md`**](backend/README.md) |
+| **¿Cómo desarrollo, compilo y pruebo el frontend?** | [**`frontend/README.md`**](frontend/README.md) |
+| **¿Qué reglas aplica cada endpoint, paginación y códigos de error?** | Contrato OpenAPI en vivo: [**`/docs`**](http://localhost:8000/docs) (Swagger) o [**`/redoc`**](http://localhost:8000/redoc) |
+| **01 · Problema, actores, flujos y criterios de aceptación del MVP** | [**`docs/01-problema-solucion-y-alcance.md`**](docs/01-problema-solucion-y-alcance.md) |
+| **02 · Arquitectura técnica, contenedores, seguridad y entornos** | [**`docs/02-arquitectura-y-contenedores.md`**](docs/02-arquitectura-y-contenedores.md) |
+| **03 · Control de concurrencia, bloqueos y lista de espera FIFO** | [**`docs/03-concurrencia-cupos-y-lista-de-espera.md`**](docs/03-concurrencia-cupos-y-lista-de-espera.md) |
+| **04 · Modelo de dominio, tablas, restricciones e integridad relacional** | [**`docs/04-modelo-dominio-y-base-de-datos.md`**](docs/04-modelo-dominio-y-base-de-datos.md) |
+
+### Estructura del Repositorio (`demo-ui`)
 
 ```text
 .
-├── backend/          # API: código, tests, migraciones, Dockerfile → backend/README.md
-├── frontend/         # App web (SPA): código, tests, Dockerfile → frontend/README.md
-├── docs/             # Diseño y decisiones (01–04)
-├── compose.yaml      # Stack local: PostgreSQL + migraciones + API + frontend
-├── docker/postgres/  # Script que crea la BD de tests al iniciar PostgreSQL
-├── scripts/          # bootstrap_env.py: crea backend/.env con un JWT_SECRET_KEY generado
-└── .devcontainer/    # Entorno de desarrollo (VS Code Dev Containers), con su propio compose
+├── backend/          # API REST (FastAPI): módulos de dominio, tests (pytest), migraciones y Dockerfile
+│   └── README.md     # Guía operativa del backend, cobertura y datos de demostración
+├── frontend/         # Aplicación Web (React + Vite + TS): vistas por rol, cliente OpenAPI, Nginx y tests
+│   └── README.md     # Guía de desarrollo del frontend y generación de tipos
+├── docs/             # Documentación arquitectónica y decisiones de diseño (01 al 04)
+├── docker/postgres/  # Script de inicialización para aprovisionar la base de datos de pruebas
+├── scripts/          # bootstrap_env.py: generador seguro de backend/.env y JWT_SECRET_KEY
+├── .devcontainer/    # Entorno de desarrollo reproducible para VS Code Dev Containers
+└── compose.yaml      # Orquestador Full-Stack: PostgreSQL + Migrate + FastAPI + Frontend (Nginx)
 ```
 
-## Levantar en local
+---
 
-Con Docker basta: un solo comando construye y arranca la base de datos, las migraciones, la API y el frontend. Desde la raíz del repositorio:
+## Estado del Proyecto
 
-```bash
-python3 scripts/bootstrap_env.py   # crea backend/.env con un JWT_SECRET_KEY generado
-docker compose up --build -d       # app en http://localhost:8080 · API en http://localhost:8000/docs
-docker compose ps                  # api y web deben aparecer como «healthy»
-```
+El entorno local está 100% operativo y containerizado mediante Docker Compose (el despliegue en infraestructura cloud pública queda fuera del alcance actual):
 
-Para entrar en la app hace falta una cuenta. Elige una opción:
+- [x] **Persistencia:** Esquema relacional completo en PostgreSQL gestionado con migraciones en **Alembic**.
+- [x] **Seguridad:** Autenticación **JWT** y control de acceso basado en roles (**Asistente, Organizador, Administrador**).
+- [x] **Core de Eventos:** Administración completa de sedes, salas, capacidades, ponentes y eventos.
+- [x] **Concurrencia y Cupos:** Inscripciones transaccionales con prevención de sobrecupo y **lista de espera FIFO**.
+- [x] **Agenda Inteligente:** Programación de charlas libre de colisiones de sala/ponente y analítica de interés.
+- [x] **Frontend & Laboratorio:** SPA en **React + TypeScript** con vistas dedicadas por rol y panel interactivo para someter a prueba las reglas de negocio y la concurrencia contra la API real.
 
-- **Datos de demo** (lo más rápido para probar): `docker compose exec api python -m app.modules.demo.cli seed`. Después, el login de http://localhost:8080 ofrece entrar con un clic en cada cuenta (contraseña `demo1234`): asistente, organizadora o administrador.
-- **Tu propio administrador:** `docker compose exec api python -m app.modules.auth.cli create-admin --email admin@example.com --full-name "Admin"`. Las demás cuentas se crean desde «Regístrate».
+---
 
-Según tu caso:
-
-| Caso | Qué hacer |
-|---|---|
-| Acabas de clonar el repositorio | Los tres comandos de arriba. La primera vez tarda unos minutos: descarga las imágenes base y las dependencias de Python y Node |
-| Ya lo tenías levantado y actualizaste el código (`git pull`) | `docker compose up --build -d`: reconstruye lo que cambió y reemplaza los contenedores. Los datos se conservan y no hace falta borrar la caché del navegador |
-| Ya tienes `backend/.env` | Puedes ejecutar `bootstrap_env.py` igualmente: no pisa el archivo, solo rellena `JWT_SECRET_KEY` si está vacío |
-| El puerto 8080 o el 8000 está ocupado (por ejemplo, por el Dev Container) | `WEB_PORT=8081 API_PORT=8001 docker compose up --build -d`. La app no depende del puerto de la API: nginx habla con ella dentro de la red de Compose |
-| Quieres empezar de cero | `docker compose down -v` (borra la base de datos) y vuelve a `docker compose up --build -d` |
-
-Si algo no arranca, el motivo está en `docker compose logs migrate`, `docker compose logs api` o `docker compose logs web`. Los detalles de cada parte están en [backend/README.md](backend/README.md) y [frontend/README.md](frontend/README.md):
-- crear el primer administrador;
-- recorrer un flujo de prueba;
-- o, si lo prefieres, cargar [datos de demo](backend/README.md#datos-de-demo-opcional) que cubren cada regla y caso borde, con una guía de qué probar;
-- ejecutar los tests con su reporte de cobertura;
-- desarrollar en el Dev Container.
-
-## Estado actual
-
-Implementado:
-- esquema de base de datos completo, con sus migraciones;
-- autenticación: registro y login con JWT;
-- usuarios y roles;
-- sedes, salas y ponentes;
-- eventos;
-- inscripciones con lista de espera;
-- charlas: salas y ponentes sin solapes, interés y métricas por charla;
-- health check;
-- frontend: vistas por rol (asistente, organizador y administrador) y un laboratorio que comprueba las reglas de negocio y la concurrencia contra la API real.
-
-El stack local se levanta con Docker Compose. El despliegue a producción queda fuera del alcance actual.
+<div align="center">
+  <sub>Última actualización: Octubre 2026 · Mis Eventos — Full-Stack Demo Branch (`demo-ui`)</sub>
+</div>

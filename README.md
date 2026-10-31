@@ -21,7 +21,7 @@
 
 <br/>
 
-[**Explorar Documentación**](#documentación-técnica) · [**Inicio Rápido**](#inicio-rápido-backend) · [**Probar Demo Gráfica**](#demo-con-interfaz-gráfica) · [**Guía del Backend**](backend/README.md)
+[**Explorar Documentación**](#documentación-técnica-y-estructura) · [**Inicio Rápido**](#inicio-rápido-backend) · [**Probar Demo Gráfica**](#demo-con-interfaz-gráfica) · [**Guía del Backend**](backend/README.md)
 
 </div>
 

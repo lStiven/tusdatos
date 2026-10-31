@@ -104,6 +104,155 @@ export const es = {
     denied: 'No permitido',
     apiTitle: 'Estado de la API',
   },
+  status: {
+    event: {
+      DRAFT: 'Borrador',
+      PUBLISHED: 'Publicado',
+      CANCELLED: 'Cancelado',
+      COMPLETED: 'Finalizado',
+    },
+    registration: {
+      CONFIRMED: 'Confirmada',
+      WAITLISTED: 'En lista de espera',
+      CANCELLED: 'Cancelada',
+    },
+    session: {
+      DRAFT: 'Borrador',
+      SCHEDULED: 'Programada',
+      CANCELLED: 'Cancelada',
+    },
+  },
+  pagination: {
+    label: 'Paginación',
+    range: (from: number, to: number, total: number) =>
+      `${from}–${to} de ${total}`,
+    previous: 'Anterior',
+    next: 'Siguiente',
+  },
+  occupancy: {
+    summary: (confirmed: number, capacity: number) =>
+      `${confirmed} de ${capacity} plazas`,
+    waitlisted: (count: number) => `${count} en espera`,
+    full: 'Completo',
+    snapshot:
+      'Es una foto del momento: una plaza libre aquí no garantiza la tuya al inscribirte.',
+  },
+  events: {
+    title: 'Eventos',
+    subtitle: 'Explora los eventos publicados e inscríbete.',
+    search: 'Buscar por título',
+    searchPlaceholder: 'Buscar eventos…',
+    statusFilter: 'Estado',
+    allStatuses: 'Todos los estados',
+    emptyTitle: 'No hay eventos con ese filtro',
+    emptyDescription: 'Prueba con otro título o quita el filtro de estado.',
+    clearFilters: 'Quitar filtros',
+    loadError: 'No pudimos cargar los eventos',
+    retry: 'Reintentar',
+  },
+  eventDetail: {
+    back: 'Volver a eventos',
+    notFoundTitle: 'Evento no encontrado',
+    notFoundDescription:
+      'No existe o es un borrador de otro organizador: los borradores solo los ven su dueño y los administradores.',
+    loadError: 'No pudimos cargar el evento',
+    retry: 'Reintentar',
+    about: 'Sobre el evento',
+    noDescription: 'Este evento no tiene descripción.',
+    venue: 'Sede',
+    noVenue: 'Sin sede asignada',
+    when: 'Cuándo',
+    timezone: (zone: string) => `Horario de ${zone}`,
+    registrationCloses: (date: string) => `Inscripciones hasta el ${date}`,
+  },
+  registration: {
+    title: 'Tu inscripción',
+    none: 'Aún no estás inscrito.',
+    confirmed: 'Tienes plaza confirmada.',
+    waitlisted: (position: number | null) =>
+      position
+        ? `Estás en la lista de espera, posición ${position}.`
+        : 'Estás en la lista de espera.',
+    waitlistHint:
+      'La lista de espera no garantiza plaza: si alguien cancela, asciende el primero de la cola.',
+    cancelled: 'Cancelaste tu inscripción.',
+    register: 'Inscribirme',
+    registering: 'Inscribiendo…',
+    registerAgain: 'Volver a inscribirme',
+    registerAgainHint:
+      'Es una solicitud nueva: si no hay plazas, irás al final de la lista de espera.',
+    cancel: 'Cancelar inscripción',
+    leaveWaitlist: 'Salir de la lista de espera',
+    cancelling: 'Cancelando…',
+    blocked: {
+      DRAFT: 'El evento aún no está publicado.',
+      CANCELLED: 'El evento se canceló.',
+      COMPLETED: 'El evento ya terminó.',
+      closed: (date: string) => `Las inscripciones cerraron el ${date}.`,
+    },
+    cancellationClosed:
+      'El evento ya empezó: la inscripción ya no se puede cancelar.',
+    result: {
+      CONFIRMED: '¡Listo! Tienes plaza confirmada.',
+      WAITLISTED: (position: number | null) =>
+        position
+          ? `El evento está lleno: entraste en la lista de espera (posición ${position}).`
+          : 'El evento está lleno: entraste en la lista de espera.',
+      unchanged: 'Ya estabas inscrito: tu inscripción no cambió.',
+      cancelled: 'Inscripción cancelada.',
+    },
+    dialog: {
+      confirmTitle: '¿Cancelar tu inscripción?',
+      confirmDescription:
+        'Liberarás tu plaza y pasará al momento al primero de la lista de espera. También se retirará tu interés en las charlas del evento.',
+      waitlistTitle: '¿Salir de la lista de espera?',
+      waitlistDescription:
+        'Perderás tu posición. Si vuelves a inscribirte, irás al final de la cola.',
+      keep: 'Mantener',
+      confirm: 'Sí, cancelar',
+    },
+  },
+  agenda: {
+    title: 'Agenda',
+    hint: 'Marcar interés ayuda al organizador a dimensionar las salas; no reserva asiento.',
+    empty: 'El evento aún no tiene charlas en la agenda.',
+    loadError: 'No pudimos cargar la agenda.',
+    noRoom: 'Sin sala',
+    speakers: (names: string) => `Con ${names}`,
+    interest: (interested: number, capacity: number) =>
+      `${interested} interesados · ${capacity} plazas`,
+    overdemand: 'Sobredemanda',
+    overdemandHint: 'Hay más interesados que plazas en la sala.',
+    markInterest: 'Me interesa',
+    interestLabel: (title: string) => `Me interesa: ${title}`,
+    overlaps: (titles: string) =>
+      `Se solapa con ${titles}, que también te interesa.`,
+    blocked: {
+      notConfirmed: 'Necesitas una inscripción confirmada para marcar interés.',
+      notOpen: 'Solo en charlas programadas que aún no han empezado.',
+    },
+  },
+  myRegistrations: {
+    title: 'Mis inscripciones',
+    subtitle:
+      'Tus inscripciones y el estado de cada evento, de la más reciente a la más antigua.',
+    filterLabel: 'Filtrar por estado',
+    tabs: {
+      ALL: 'Todas',
+      CONFIRMED: 'Confirmadas',
+      WAITLISTED: 'En espera',
+      CANCELLED: 'Canceladas',
+    },
+    position: (position: number) => `Posición ${position} en la cola`,
+    eventStatus: 'Evento',
+    registrationStatus: 'Inscripción',
+    emptyTitle: 'No hay inscripciones aquí',
+    emptyDescription:
+      'Cuando te inscribas en un evento aparecerá en esta lista.',
+    explore: 'Explorar eventos',
+    loadError: 'No pudimos cargar tus inscripciones',
+    retry: 'Reintentar',
+  },
   comingSoon: {
     title: 'Próximamente',
     description: (phase: number) =>

@@ -3,7 +3,10 @@ import { AppShell } from '@/components/layout/app-shell'
 import { RequireAuth, RequireRole } from '@/features/auth/guards'
 import { LoginPage } from '@/features/auth/login-page'
 import { RegisterPage } from '@/features/auth/register-page'
+import { EventDetailPage } from '@/features/events/event-detail-page'
+import { EventsPage } from '@/features/events/events-page'
 import { HomePage } from '@/features/home/home-page'
+import { MyRegistrationsPage } from '@/features/registrations/my-registrations-page'
 import { ComingSoonPage } from '@/pages/coming-soon-page'
 import { NotFoundPage } from '@/pages/not-found-page'
 import { es } from '@/i18n/es'
@@ -23,14 +26,9 @@ export const routes: RouteObject[] = [
     ),
     children: [
       { index: true, element: <HomePage /> },
-      {
-        path: 'eventos',
-        element: <ComingSoonPage title={es.nav.events} phase={2} />,
-      },
-      {
-        path: 'mis-inscripciones',
-        element: <ComingSoonPage title={es.nav.myRegistrations} phase={2} />,
-      },
+      { path: 'eventos', element: <EventsPage /> },
+      { path: 'eventos/:eventId', element: <EventDetailPage /> },
+      { path: 'mis-inscripciones', element: <MyRegistrationsPage /> },
       {
         path: 'organizador/eventos',
         element: (

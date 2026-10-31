@@ -82,7 +82,7 @@ export function AppShell() {
         {es.a11y.skipToContent}
       </a>
 
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r bg-sidebar lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r bg-sidebar lg:flex">
         <div className="flex h-16 items-center px-5">
           <Brand />
         </div>
